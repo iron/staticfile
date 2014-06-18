@@ -1,10 +1,10 @@
 # Contributing
 
-**middleware-seed** uses the same conventions as **[Iron](https://github.com/iron/iron)**.
+**static** uses the same conventions as **[Iron](https://github.com/iron/iron)**.
 
 ### Overview
 
-* Fork middleware-seed to your own account
+* Fork static to your own account
 * Create a feature branch, namespaced by.
   * bug/...
   * feat/...
