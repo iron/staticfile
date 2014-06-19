@@ -1,53 +1,58 @@
-#![crate_id = "hello"]
+#![crate_id = "staticfile"]
 #![deny(missing_doc)]
 #![feature(phase)]
 
-//! A simple middleware to serve "Hello, world!" to all requests.
+//! Static file-serving middleware.
 
 extern crate iron;
 extern crate http;
 #[phase(plugin, link)]
 extern crate log;
 
-use iron::{Request, Response, Middleware, Alloy};
+use std::path::BytesContainer;
+use std::str::from_utf8;
+
+use iron::{Request, Response, ServeFile, Middleware, Alloy};
 use iron::middleware::{Status, Continue, Unwind};
 
-use http::status;
+use http::server::request::AbsolutePath;
 
-/// The hello `Middleware`.
+/// The static file-serving `Middleware`.
 #[deriving(Clone)]
-pub struct HelloWorld;
+pub struct Static {
+    root_path: Path
+}
 
-impl HelloWorld {
-    /// Create a new instance of the hello `Middleware`.
-    pub fn new() -> HelloWorld {
-        HelloWorld
+impl Static {
+    /// Create a new instance of `Static`.
+    pub fn new(root_path: Path) -> Static {
+        Static {
+            root_path: root_path
+        }
     }
 }
 
-impl Middleware for HelloWorld {
-    /// Serve "Hello, world!"
+impl Middleware for Static {
+    /// Serve static files.
     ///
-    /// In the case of an error, return a status of 500: InternalServerError
-    fn enter(&mut self, _req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
-        match res.write(bytes!("Hello, world!")) {
-            Ok(()) => (),
-            Err(_) => {
-                res.status = status::InternalServerError;
-                return Unwind
+    /// If a static file exists and can be read from, `enter` will serve it
+    /// to the `Response` and `Unwind` the middleware stack.
+    ///
+    /// In the case of any error, it will `Continue` through the stack.
+    fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
+        match req.request_uri {
+            AbsolutePath(ref path) => {
+                debug!("Serving static file at {}{}.", from_utf8(self.root_path.container_as_bytes()).unwrap(), path);
+                let mut relative_path = path.clone();
+                let _ = relative_path.as_slice().slice_from(1u);
+                match res.serve_file(&self.root_path.join(Path::new(relative_path.to_string()))) {
+                    Ok(()) => { Unwind },
+                    Err(_) => { Continue }
+                }
+            },
+            _ => {
+                Continue
             }
         }
-        Continue
-    }
-
-    /// Debug what you did.
-    ///
-    /// Prints `Served "Hello, World".` if RUST_LOG is set to 4.
-    /// This function does not need to be implemented (neither does `enter`).
-    /// `Middleware` implements a default function which does nothing.
-    /// It is implemented for the sake of example.
-    fn exit(&mut self, _req: &mut Request, _res: &mut Response, _alloy: &mut Alloy) -> Status {
-        debug!("Served \"Hello, World\".");
-        Continue
     }
 }
