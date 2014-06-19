@@ -24,7 +24,20 @@ pub struct Static {
 }
 
 impl Static {
-    /// Create a new instance of `Static`.
+    /// Create a new instance of `Static` with a given root path.
+    ///
+    /// This will attempt to serve static files from the given root path.
+    /// The path may be relative or absolute. If `Path::new("")` is given,
+    /// files will be served from the current directory.
+    ///
+    /// If a static file exists and can be read from, `enter` will serve it to
+    /// the `Response` and `Unwind` the middleware stack with a status of `200`.
+    ///
+    /// In the case of any error, it will `Continue` through the stack.
+    /// If a file should have been read but cannot, due to permissions or
+    /// read errors, a different `Middleware` should handle it.
+    ///
+    /// If the path is '/', it will attempt to serve `index.html`.
     pub fn new(root_path: Path) -> Static {
         Static {
             root_path: root_path
@@ -33,14 +46,6 @@ impl Static {
 }
 
 impl Middleware for Static {
-    /// Serve static files.
-    ///
-    /// If a static file exists and can be read from, `enter` will serve it
-    /// to the `Response` and `Unwind` the middleware stack.
-    ///
-    /// In the case of any error, it will `Continue` through the stack.
-    ///
-    /// If the path is '/', it will attempt to serve `index.html`.
     fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
         match req.request_uri {
             AbsolutePath(ref path) => {
