@@ -1,4 +1,4 @@
-staticfile [![Build Status](https://secure.travis-ci.org/iron/static.png?branch=master)](https://travis-ci.org/iron/static)
+staticfile [![Build Status](https://secure.travis-ci.org/iron/staticfile.png?branch=master)](https://travis-ci.org/iron/staticfile)
 ====
 
 > Static file-serving implemented as Middleware for the Iron framework.
