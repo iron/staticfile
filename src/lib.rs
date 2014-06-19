@@ -39,12 +39,18 @@ impl Middleware for Static {
     /// to the `Response` and `Unwind` the middleware stack.
     ///
     /// In the case of any error, it will `Continue` through the stack.
+    ///
+    /// If the path is '/', it will attempt to serve `index.html`.
     fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
         match req.request_uri {
             AbsolutePath(ref path) => {
                 debug!("Serving static file at {}{}.", from_utf8(self.root_path.container_as_bytes()).unwrap(), path);
                 let mut relative_path = path.clone();
-                let _ = relative_path.as_slice().slice_from(1u);
+                if relative_path.eq(&"/".to_string()) {
+                    relative_path = "index.html".to_string();
+                } else {
+                    let _ = relative_path.as_slice().slice_from(1u);
+                }
                 match res.serve_file(&self.root_path.join(Path::new(relative_path.to_string()))) {
                     Ok(()) => { Unwind },
                     Err(_) => { Continue }
