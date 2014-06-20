@@ -55,7 +55,7 @@ impl Middleware for Static {
                 if relative_path.eq(&"/".to_string()) {
                     relative_path = "index.html".to_string();
                 } else {
-                    let _ = relative_path.as_slice().slice_from(1u);
+                    relative_path.shift_char();
                 }
                 match res.serve_file(&self.root_path.join(Path::new(relative_path.to_string()))) {
                     Ok(()) => { Unwind },
