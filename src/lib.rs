@@ -12,7 +12,8 @@ extern crate log;
 use std::path::BytesContainer;
 use std::str::from_utf8;
 
-use iron::{Request, Response, ServeFile, Middleware, Alloy};
+use iron::{Request, Response, Middleware, Alloy};
+use iron::mixin::Serve;
 use iron::middleware::{Status, Continue, Unwind};
 
 use http::server::request::AbsolutePath;
