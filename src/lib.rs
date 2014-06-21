@@ -27,6 +27,7 @@ pub struct Static {
 }
 
 #[deriving(Clone)]
+#[doc(hidden)]
 struct Favicon {
     favicon_path: Path
 }
@@ -52,6 +53,18 @@ impl Static {
         }
     }
 
+    /// Create a favicon server from the given filepath.
+    ///
+    /// This will serve your favicon, as specified by `favicon_path`,
+    /// to every request ending in "/favicon.ico" that it sees,
+    /// and then unwind the middleware stack for those requests.
+    ///
+    /// It should be linked first in order to avoid additional processing
+    /// for simple favicon requests.
+    ///
+    /// Unlike normally served static files, favicons are given a max-age
+    /// of one day.
+    #[allow(visible_private_types)]
     pub fn favicon(favicon_path: Path) -> Favicon {
         Favicon {
             favicon_path: favicon_path
