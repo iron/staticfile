@@ -5,6 +5,10 @@
 //! Static file-serving middleware.
 
 extern crate url;
+#[phase(plugin)]
+extern crate regex_macros;
+extern crate regex;
+
 #[phase(plugin, link)]
 extern crate log;
 extern crate http;
@@ -20,6 +24,11 @@ use mount::OriginalUrl;
 #[deriving(Clone)]
 pub struct Static {
     root_path: Path
+}
+
+#[deriving(Clone)]
+struct Favicon {
+    favicon_path: Path
 }
 
 impl Static {
@@ -40,6 +49,12 @@ impl Static {
     pub fn new(root_path: Path) -> Static {
         Static {
             root_path: root_path
+        }
+    }
+
+    pub fn favicon(favicon_path: Path) -> Favicon {
+        Favicon {
+            favicon_path: favicon_path
         }
     }
 }
@@ -101,5 +116,26 @@ impl Middleware for Static {
             None => ()
         }
         Continue
+    }
+}
+
+impl Middleware for Favicon {
+    fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
+        match req.request_uri {
+            AbsolutePath(ref path) => {
+                if regex!("/favicon$").is_match(path.as_slice()) {
+                    match res.serve_file(&self.favicon_path) {
+                        Ok(()) => {
+                            res.headers.cache_control = Some("max-age=86400".to_str());
+                            return Unwind },
+                        Err(_) => { return Continue }
+                    }
+                }
+                Continue
+            },
+            _ => {
+                Continue
+            }
+        }
     }
 }
