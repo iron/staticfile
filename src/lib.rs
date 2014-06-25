@@ -5,7 +5,6 @@
 //! Static file-serving middleware.
 
 extern crate iron;
-extern crate http;
 #[phase(plugin, link)]
 extern crate log;
 
@@ -13,10 +12,8 @@ use std::path::BytesContainer;
 use std::str::from_utf8;
 
 use iron::{Request, Response, Middleware, Alloy};
-use iron::mixin::Serve;
+use iron::mixin::{GetUrl, Serve};
 use iron::middleware::{Status, Continue, Unwind};
-
-use http::server::request::AbsolutePath;
 
 /// The static file-serving `Middleware`.
 #[deriving(Clone)]
@@ -48,8 +45,8 @@ impl Static {
 
 impl Middleware for Static {
     fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
-        match req.request_uri {
-            AbsolutePath(ref path) => {
+        match req.url() {
+            Some(path) => {
                 debug!("Serving static file at {}{}.", from_utf8(self.root_path.container_as_bytes()).unwrap(), path);
                 let mut relative_path = path.clone();
                 if relative_path.eq(&"/".to_string()) {
@@ -62,7 +59,7 @@ impl Middleware for Static {
                     Err(_) => { Continue }
                 }
             },
-            _ => {
+            None => {
                 Continue
             }
         }
