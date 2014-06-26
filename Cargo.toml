@@ -1,0 +1,17 @@
+[package]
+
+name = "staticfile"
+version = "0.1.0"
+readme = "README.md"
+authors = ["Zach Pomerantz <zmp@umich.edu>"]
+tags = ["web", "server", "middleware", "iron", "core", "static", "file"]
+
+[[lib]]
+
+name = "cookie"
+path = "src/lib.rs"
+
+[dependencies.iron]
+
+git = "https://github.com/iron/iron.git"
+
