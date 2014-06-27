@@ -8,9 +8,6 @@ extern crate iron;
 #[phase(plugin, link)]
 extern crate log;
 
-use std::path::BytesContainer;
-use std::str::from_utf8;
-
 use iron::{Request, Response, Middleware, Alloy};
 use iron::mixin::{GetUrl, Serve};
 use iron::middleware::{Status, Continue, Unwind};
@@ -47,22 +44,23 @@ impl Middleware for Static {
     fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
         match req.url() {
             Some(path) => {
-                let mut relative_path = path.clone();
-                if relative_path.eq(&"/".to_string()) {
-                    relative_path = "index.html".to_string();
-                }
-                match res.serve_file(&self.root_path.join(Path::new(relative_path.to_string()))) {
+                // Check for requested file
+                match res.serve_file(&self.root_path.join(
+                    Path::new(
+                        // Coerce to relative path, see http://is.gd/yz9p0B
+                        "./".to_string().append(path.as_slice())))) {
                     Ok(()) => {
-                        debug!("Serving static file at {}{}.",
-                            from_utf8(self.root_path.container_as_bytes()).unwrap(), path);
-                        Unwind
+                        debug!("Serving static file at {}.",
+                            &self.root_path.join("./".to_string().append(path.as_slice())).display());
+                        return Unwind
                     },
-                    Err(_) => { Continue }
+                    Err(_) => ()
                 }
+                // Check for index.html
+                // Do not serve index.html as directory
             },
-            None => {
-                Continue
-            }
+            None => ()
         }
+        Continue
     }
 }
