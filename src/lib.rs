@@ -47,7 +47,6 @@ impl Middleware for Static {
     fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
         match req.url() {
             Some(path) => {
-                debug!("Serving static file at {}{}.", from_utf8(self.root_path.container_as_bytes()).unwrap(), path);
                 let mut relative_path = path.clone();
                 if relative_path.eq(&"/".to_string()) {
                     relative_path = "index.html".to_string();
@@ -55,7 +54,11 @@ impl Middleware for Static {
                     relative_path.shift_char();
                 }
                 match res.serve_file(&self.root_path.join(Path::new(relative_path.to_string()))) {
-                    Ok(()) => { Unwind },
+                    Ok(()) => {
+                        debug!("Serving static file at {}{}.",
+                            from_utf8(self.root_path.container_as_bytes()).unwrap(), path);
+                        Unwind
+                    },
                     Err(_) => { Continue }
                 }
             },
