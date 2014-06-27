@@ -9,11 +9,13 @@ extern crate url;
 extern crate regex_macros;
 extern crate regex;
 
-#[phase(plugin, link)]
-extern crate log;
 extern crate http;
 extern crate iron;
+#[phase(plugin, link)]
+extern crate log;
 extern crate mount;
+
+use http::headers::content_type::MediaType;
 
 use iron::{Request, Response, Middleware, Alloy};
 use iron::mixin::{GetUrl, Serve};
@@ -29,6 +31,7 @@ pub struct Static {
 #[deriving(Clone)]
 #[doc(hidden)]
 struct Favicon {
+    max_age: u8,
     favicon_path: Path
 }
 
@@ -62,11 +65,12 @@ impl Static {
     /// It should be linked first in order to avoid additional processing
     /// for simple favicon requests.
     ///
-    /// Unlike normally served static files, favicons are given a max-age
-    /// of one day.
+    /// Unlike normally served static files, favicons are given a max-age,
+    /// specified in seconds.
     #[allow(visible_private_types)]
-    pub fn favicon(favicon_path: Path) -> Favicon {
+    pub fn favicon(favicon_path: Path, max_age: u8) -> Favicon {
         Favicon {
+            max_age: max_age,
             favicon_path: favicon_path
         }
     }
@@ -134,21 +138,28 @@ impl Middleware for Static {
 
 impl Middleware for Favicon {
     fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
-        match req.request_uri {
-            AbsolutePath(ref path) => {
-                if regex!("/favicon$").is_match(path.as_slice()) {
+        match req.url() {
+            Some(path) => {
+                if regex!("/favicon.ico$").is_match(path.as_slice()) {
+                    res.headers.content_type = Some(MediaType {
+                        type_: "image".to_string(),
+                        subtype: "x-icon".to_string(),
+                        parameters: vec![]
+                    });
+                    res.headers.cache_control = Some(format!("public, max-age={}", self.max_age));
+                    let _ = res.try_write_headers();
                     match res.serve_file(&self.favicon_path) {
-                        Ok(()) => {
-                            res.headers.cache_control = Some("max-age=86400".to_str());
-                            return Unwind },
-                        Err(_) => { return Continue }
+                        Ok(()) => (),
+                        Err(_) => {
+                            let _ = res.serve(::http::status::InternalServerError,
+                                "Failed to serve favicon.ico.");
+                        }
                     }
+                    return Unwind;
                 }
-                Continue
             },
-            _ => {
-                Continue
-            }
+            None => ()
         }
+        Continue
     }
 }
