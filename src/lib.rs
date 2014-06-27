@@ -50,8 +50,6 @@ impl Middleware for Static {
                 let mut relative_path = path.clone();
                 if relative_path.eq(&"/".to_string()) {
                     relative_path = "index.html".to_string();
-                } else {
-                    relative_path.shift_char();
                 }
                 match res.serve_file(&self.root_path.join(Path::new(relative_path.to_string()))) {
                     Ok(()) => {
