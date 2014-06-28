@@ -9,10 +9,12 @@ extern crate url;
 extern crate log;
 extern crate http;
 extern crate iron;
+extern crate mount;
 
 use iron::{Request, Response, Middleware, Alloy};
 use iron::mixin::{GetUrl, Serve};
 use iron::middleware::{Status, Continue, Unwind};
+use mount::OriginalUrl;
 
 /// The static file-serving `Middleware`.
 #[deriving(Clone)]
@@ -43,7 +45,7 @@ impl Static {
 }
 
 impl Middleware for Static {
-    fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
+    fn enter(&mut self, req: &mut Request, res: &mut Response, alloy: &mut Alloy) -> Status {
         match req.url() {
             Some(path) => {
                 // Check for requested file
@@ -80,8 +82,12 @@ impl Middleware for Static {
                         },
                         // 303:
                         _   => {
+                            let redirect_path = match alloy.find::<OriginalUrl>() {
+                                Some(&OriginalUrl(ref original_url)) => original_url.clone(),
+                                None => path.clone()
+                            }.append("/");
                             res.headers.location = Some(::url::Url {
-                                path: path.clone().append("/"),
+                                path: redirect_path.clone(),
                                 scheme: "".to_string(),
                                 user: None,
                                 host: "".to_string(),
@@ -90,7 +96,7 @@ impl Middleware for Static {
                                 fragment: None
                             });
                             let _ = res.serve(::http::status::SeeOther,
-                                format!("Redirecting to {}/", path).as_slice());
+                                format!("Redirecting to {}/", redirect_path).as_slice());
                             return Unwind
                         }
                     }                    
