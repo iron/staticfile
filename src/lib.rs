@@ -92,15 +92,7 @@ impl Middleware for Static {
                         Some(&OriginalUrl(ref original_url)) => original_url.clone(),
                         None => path.clone()
                     }.append("/");
-                    res.headers.location = Some(::url::Url {
-                        path: redirect_path.clone(),
-                        scheme: "".to_string(),
-                        user: None,
-                        host: "".to_string(),
-                        port: None,
-                        query: vec![],
-                        fragment: None
-                    });
+                    res.headers.extensions.insert("Location".to_string(), redirect_path.clone());
                     let _ = res.serve(::http::status::SeeOther,
                         format!("Redirecting to {}/", redirect_path).as_slice());
                     return Unwind
