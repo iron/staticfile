@@ -4,16 +4,17 @@
 
 //! Static file-serving middleware.
 
-extern crate iron;
+extern crate url;
 #[phase(plugin, link)]
 extern crate log;
-
-use std::path::BytesContainer;
-use std::str::from_utf8;
+extern crate http;
+extern crate iron;
+extern crate mount;
 
 use iron::{Request, Response, Middleware, Alloy};
 use iron::mixin::{GetUrl, Serve};
 use iron::middleware::{Status, Continue, Unwind};
+use mount::OriginalUrl;
 
 /// The static file-serving `Middleware`.
 #[deriving(Clone)]
@@ -44,24 +45,65 @@ impl Static {
 }
 
 impl Middleware for Static {
-    fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
+    fn enter(&mut self, req: &mut Request, res: &mut Response, alloy: &mut Alloy) -> Status {
         match req.url() {
             Some(path) => {
-                debug!("Serving static file at {}{}.", from_utf8(self.root_path.container_as_bytes()).unwrap(), path);
-                let mut relative_path = path.clone();
-                if relative_path.eq(&"/".to_string()) {
-                    relative_path = "index.html".to_string();
-                } else {
-                    relative_path.shift_char();
+                // Check for requested file
+                match res.serve_file(&self.root_path.join(
+                    Path::new(
+                        // Coerce to relative path.
+                        // We include the slash to ensure that you never have a path like ".index.html"
+                        // when you meant "./index.html", see http://is.gd/yz9p0B for an example.
+                        "./".to_string().append(path.as_slice())))) {
+                    Ok(()) => {
+                        debug!("Serving static file at {}.",
+                            &self.root_path.join("./".to_string().append(path.as_slice())).display());
+                        return Unwind
+                    },
+                    Err(_) => ()
                 }
-                match res.serve_file(&self.root_path.join(Path::new(relative_path.to_string()))) {
-                    Ok(()) => { Unwind },
-                    Err(_) => { Continue }
+
+                // Check for index.html
+                let index_path = self.root_path.join(
+                    Path::new("./".to_string().append(path.as_slice()))
+                        .join("./index.html".to_string()));
+                if index_path.is_file() {
+                    // Avoid serving as a directory
+                    match path.as_slice().char_at_reverse(path.len()) {
+                        '/' => {
+                            match res.serve_file(&index_path) {
+                                Ok(()) => {
+                                    debug!("Serving static file at {}.",
+                                        &index_path.display());
+                                    return Unwind
+                                },
+                                Err(err) => debug!("Failed while trying to serve index.html: {}", err)
+                            }
+                        },
+                        // 303:
+                        _   => {
+                            let redirect_path = match alloy.find::<OriginalUrl>() {
+                                Some(&OriginalUrl(ref original_url)) => original_url.clone(),
+                                None => path.clone()
+                            }.append("/");
+                            res.headers.location = Some(::url::Url {
+                                path: redirect_path.clone(),
+                                scheme: "".to_string(),
+                                user: None,
+                                host: "".to_string(),
+                                port: None,
+                                query: vec![],
+                                fragment: None
+                            });
+                            let _ = res.serve(::http::status::SeeOther,
+                                format!("Redirecting to {}/", redirect_path).as_slice());
+                            return Unwind
+                        }
+                    }                    
                 }
             },
-            None => {
-                Continue
-            }
+            None => ()
         }
+        Continue
     }
 }
