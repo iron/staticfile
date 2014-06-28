@@ -69,37 +69,41 @@ impl Middleware for Static {
                         .join("./index.html".to_string()));
                 if index_path.is_file() {
                     // Avoid serving as a directory
-                    match path.as_slice().char_at_reverse(path.len()) {
-                        '/' => {
-                            match res.serve_file(&index_path) {
-                                Ok(()) => {
-                                    debug!("Serving static file at {}.",
-                                        &index_path.display());
-                                    return Unwind
-                                },
-                                Err(err) => debug!("Failed while trying to serve index.html: {}", err)
-                            }
-                        },
-                        // 303:
-                        _   => {
-                            let redirect_path = match alloy.find::<OriginalUrl>() {
-                                Some(&OriginalUrl(ref original_url)) => original_url.clone(),
-                                None => path.clone()
-                            }.append("/");
-                            res.headers.location = Some(::url::Url {
-                                path: redirect_path.clone(),
-                                scheme: "".to_string(),
-                                user: None,
-                                host: "".to_string(),
-                                port: None,
-                                query: vec![],
-                                fragment: None
-                            });
-                            let _ = res.serve(::http::status::SeeOther,
-                                format!("Redirecting to {}/", redirect_path).as_slice());
-                            return Unwind
+                    if path.len() > 0 {
+                        match path.as_slice().char_at_reverse(path.len()) {
+                            '/' => {
+                                match res.serve_file(&index_path) {
+                                    Ok(()) => {
+                                        debug!("Serving static file at {}.",
+                                            &index_path.display());
+                                        return Unwind
+                                    },
+                                    Err(err) => {
+                                        debug!("Failed while trying to serve index.html: {}", err)
+                                        return Continue
+                                    }
+                                }
+                            },
+                    // 303:
+                            _ => ()
                         }
-                    }                    
+                    }
+                    let redirect_path = match alloy.find::<OriginalUrl>() {
+                        Some(&OriginalUrl(ref original_url)) => original_url.clone(),
+                        None => path.clone()
+                    }.append("/");
+                    res.headers.location = Some(::url::Url {
+                        path: redirect_path.clone(),
+                        scheme: "".to_string(),
+                        user: None,
+                        host: "".to_string(),
+                        port: None,
+                        query: vec![],
+                        fragment: None
+                    });
+                    let _ = res.serve(::http::status::SeeOther,
+                        format!("Redirecting to {}/", redirect_path).as_slice());
+                    return Unwind
                 }
             },
             None => ()
