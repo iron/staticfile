@@ -1,26 +1,55 @@
-staticfile [![Build Status](https://secure.travis-ci.org/iron/staticfile.png?branch=master)](https://travis-ci.org/iron/staticfile)
+static-file [![Build Status](https://secure.travis-ci.org/iron/static-file.png?branch=master)](https://travis-ci.org/iron/static-file)
 ====
 
-> Static file-serving implemented as Middleware for the Iron framework.
+> Static file-serving middleware for the [Iron](https://github.com/iron/iron) web framework.
+
+## Example
+
+```rust
+extern crate iron;
+extern crate http;
+use iron::{Iron, ServerT, Chain, Request, Response, Alloy};
+
+fn main() {
+    let mut server: ServerT = Iron::new();
+    server.chain.link(hello_world); // Add middleware to the server's stack
+    server.listen(::std::io::net::ip::Ipv4Addr(127, 0, 0, 1), 3000);
+}
+
+fn hello_world(_: &mut Request, res: &mut Response, _: &mut Alloy) {
+    res.serve(::http::Ok, "Hello, world!");
+}
+```
+
+## Overview
+
+static-file is a part of Iron's [core bundle](https://github.com/iron/core).
+
+- ...
+- ...
 
 ## Installation
 
-Add this to your Iron server as a dependency in `configure`:
+If you're using a `Cargo` to manage dependencies, just add static-file to the toml:
 
-```bash
-updateDependency 'https://github.com/iron/static.git' 'static' "/target/$TARGET/lib"
+```toml
+[dependencies.staticfile]
+
+git = "https://github.com/iron/static-file.git"
 ```
 
-## Example Usage
+Otherwise, `cargo build`, and the rlib will be in your `target` directory.
 
-See `examples`.
+## [Documentation](http://docs.ironframework.io/core/staticfile)
 
-To run the example:
+Along with the [online documentation](http://docs.ironframework.io/core/staticfile),
+you can build a local copy with `make doc`.
 
-- `./configure && make examples doc && ./examples/doc`.
+## [Examples](/examples)
 
-- Browse to `localhost:3000`.
+## Get Help
 
-## License
-
-MIT
+One of us ([@reem](https://github.com/reem/), [@zzmp](https://github.com/zzmp/),
+[@theptrk](https://github.com/theptrk/), [@mcreinhard](https://github.com/mcreinhard))
+is usually on `#iron` on the mozilla irc. Come say hi and ask any questions you might have.
+We are also usually on `#rust` and `#rust-webdev`.
