@@ -6,18 +6,15 @@ static-file [![Build Status](https://secure.travis-ci.org/iron/static-file.png?b
 ## Example
 
 ```rust
-extern crate iron;
-extern crate http;
-use iron::{Iron, ServerT, Chain, Request, Response, Alloy};
-
 fn main() {
     let mut server: ServerT = Iron::new();
-    server.chain.link(hello_world); // Add middleware to the server's stack
-    server.listen(::std::io::net::ip::Ipv4Addr(127, 0, 0, 1), 3000);
-}
-
-fn hello_world(_: &mut Request, res: &mut Response, _: &mut Alloy) {
-    res.serve(::http::Ok, "Hello, world!");
+    // Serve a favicon
+    server.chain.link(Static::favicon(Path::new("path/to/favicon")));
+    // Serve the docs
+    server.chain.link(Static::new(Path::new("doc/")));
+    // Serve the index.html
+    server.chain.link(Static::new(Path::new("doc/staticfile/")));
+    server.listen(Ipv4Addr(127, 0, 0, 1), 3000);
 }
 ```
 
@@ -25,8 +22,8 @@ fn hello_world(_: &mut Request, res: &mut Response, _: &mut Alloy) {
 
 static-file is a part of Iron's [core bundle](https://github.com/iron/core).
 
-- ...
-- ...
+- Serve static files from a given path, if available.
+- Serve all requests to favicon.ico with a given file.
 
 ## Installation
 
