@@ -1,26 +1,52 @@
-staticfile [![Build Status](https://secure.travis-ci.org/iron/staticfile.png?branch=master)](https://travis-ci.org/iron/staticfile)
+static-file [![Build Status](https://secure.travis-ci.org/iron/static-file.png?branch=master)](https://travis-ci.org/iron/static-file)
 ====
 
-> Static file-serving implemented as Middleware for the Iron framework.
+> Static file-serving middleware for the [Iron](https://github.com/iron/iron) web framework.
+
+## Example
+
+```rust
+fn main() {
+    let mut server: ServerT = Iron::new();
+    // Serve a favicon
+    server.chain.link(Static::favicon(Path::new("path/to/favicon")));
+    // Serve the docs
+    server.chain.link(Static::new(Path::new("doc/")));
+    // Serve the index.html
+    server.chain.link(Static::new(Path::new("doc/staticfile/")));
+    server.listen(Ipv4Addr(127, 0, 0, 1), 3000);
+}
+```
+
+## Overview
+
+static-file is a part of Iron's [core bundle](https://github.com/iron/core).
+
+- Serve static files from a given path, if available.
+- Serve all requests to favicon.ico with a given file.
 
 ## Installation
 
-Add this to your Iron server as a dependency in `configure`:
+If you're using a `Cargo.toml` to manage dependencies, just add static-file to the toml:
 
-```bash
-updateDependency 'https://github.com/iron/static.git' 'static' "/target/$TARGET/lib"
+```toml
+[dependencies.staticfile]
+
+git = "https://github.com/iron/static-file.git"
 ```
 
-## Example Usage
+Otherwise, `cargo build`, and the rlib will be in your `target` directory.
 
-See `examples`.
+## [Documentation](http://docs.ironframework.io/core/staticfile)
 
-To run the example:
+Along with the [online documentation](http://docs.ironframework.io/core/staticfile),
+you can build a local copy with `make doc`.
 
-- `./configure && make examples doc && ./examples/doc`.
+## [Examples](/examples)
 
-- Browse to `localhost:3000`.
+## Get Help
 
-## License
-
-MIT
+One of us ([@reem](https://github.com/reem/), [@zzmp](https://github.com/zzmp/),
+[@theptrk](https://github.com/theptrk/), [@mcreinhard](https://github.com/mcreinhard))
+is usually on `#iron` on the mozilla irc. Come say hi and ask any questions you might have.
+We are also usually on `#rust` and `#rust-webdev`.
