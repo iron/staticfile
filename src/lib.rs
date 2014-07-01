@@ -18,9 +18,8 @@ extern crate mount;
 
 use http::headers::content_type::MediaType;
 
-use iron::{Request, Response, Middleware, Alloy};
+use iron::{Request, Response, Middleware, Alloy, Status, Continue, Unwind};
 use iron::mixin::{GetUrl, Serve};
-use iron::middleware::{Status, Continue, Unwind};
 use mount::OriginalUrl;
 
 /// The static file-serving `Middleware`.

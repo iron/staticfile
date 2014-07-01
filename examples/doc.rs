@@ -6,12 +6,11 @@ extern crate staticfile;
 
 use std::io::net::ip::Ipv4Addr;
 
-use iron::{Iron, ServerT, Chain};
-
+use iron::{Iron, Server, Chain};
 use staticfile::Static;
 
 fn main() {
-    let mut server: ServerT = Iron::new();
+    let mut server: Server = Iron::new();
     // Serve the docs
     server.chain.link(Static::new(Path::new("doc/")));
     // Serve the index.html
