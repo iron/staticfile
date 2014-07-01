@@ -7,7 +7,7 @@ static-file [![Build Status](https://secure.travis-ci.org/iron/static-file.png?b
 
 ```rust
 fn main() {
-    let mut server: ServerT = Iron::new();
+    let mut server: Server = Iron::new();
     // Serve a favicon
     server.chain.link(Static::favicon(Path::new("path/to/favicon")));
     // Serve the docs
