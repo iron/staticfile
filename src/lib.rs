@@ -6,11 +6,17 @@
 //! Static file-serving middleware.
 
 extern crate url;
-#[phase(plugin, link)]
-extern crate log;
+#[phase(plugin)]
+extern crate regex_macros;
+extern crate regex;
+
 extern crate http;
 extern crate iron;
+#[phase(plugin, link)]
+extern crate log;
 extern crate mount;
+
+use http::headers::content_type::MediaType;
 
 use iron::{Request, Response, Middleware, Alloy};
 use iron::mixin::{GetUrl, Serve};
@@ -21,6 +27,13 @@ use mount::OriginalUrl;
 #[deriving(Clone)]
 pub struct Static {
     root_path: Path
+}
+
+#[deriving(Clone)]
+#[doc(hidden)]
+struct Favicon {
+    max_age: u8,
+    favicon_path: Path
 }
 
 impl Static {
@@ -41,6 +54,25 @@ impl Static {
     pub fn new(root_path: Path) -> Static {
         Static {
             root_path: root_path
+        }
+    }
+
+    /// Create a favicon server from the given filepath.
+    ///
+    /// This will serve your favicon, as specified by `favicon_path`,
+    /// to every request ending in "/favicon.ico" that it sees,
+    /// and then unwind the middleware stack for those requests.
+    ///
+    /// It should be linked first in order to avoid additional processing
+    /// for simple favicon requests.
+    ///
+    /// Unlike normally served static files, favicons are given a max-age,
+    /// specified in seconds.
+    #[allow(visible_private_types)]
+    pub fn favicon(favicon_path: Path, max_age: u8) -> Favicon {
+        Favicon {
+            max_age: max_age,
+            favicon_path: favicon_path
         }
     }
 }
@@ -97,6 +129,34 @@ impl Middleware for Static {
                     let _ = res.serve(::http::status::SeeOther,
                         format!("Redirecting to {}/", redirect_path).as_slice());
                     return Unwind
+                }
+            },
+            None => ()
+        }
+        Continue
+    }
+}
+
+impl Middleware for Favicon {
+    fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
+        match req.url() {
+            Some(path) => {
+                if regex!("/favicon.ico$").is_match(path.as_slice()) {
+                    res.headers.content_type = Some(MediaType {
+                        type_: "image".to_string(),
+                        subtype: "x-icon".to_string(),
+                        parameters: vec![]
+                    });
+                    res.headers.cache_control = Some(format!("public, max-age={}", self.max_age));
+                    let _ = res.try_write_headers();
+                    match res.serve_file(&self.favicon_path) {
+                        Ok(()) => (),
+                        Err(_) => {
+                            let _ = res.serve(::http::status::InternalServerError,
+                                "Failed to serve favicon.ico.");
+                        }
+                    }
+                    return Unwind;
                 }
             },
             None => ()
