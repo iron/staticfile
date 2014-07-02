@@ -37,9 +37,9 @@ git = "https://github.com/iron/static-file.git"
 
 Otherwise, `cargo build`, and the rlib will be in your `target` directory.
 
-## [Documentation](http://docs.ironframework.io/core/staticfile)
+## [Documentation](http://docs.ironframework.io/staticfile)
 
-Along with the [online documentation](http://docs.ironframework.io/core/staticfile),
+Along with the [online documentation](http://docs.ironframework.io/staticfile),
 you can build a local copy with `make doc`.
 
 ## [Examples](/examples)
