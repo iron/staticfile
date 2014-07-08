@@ -1,5 +1,5 @@
 #![doc(html_logo_url = "https://avatars0.githubusercontent.com/u/7853871?s=128", html_favicon_url = "https://avatars0.githubusercontent.com/u/7853871?s=256", html_root_url = "http://ironframework.io/core/staticfile")]
-#![crate_id = "staticfile"]
+#![crate_name = "staticfile"]
 #![deny(missing_doc)]
 #![feature(phase)]
 
@@ -17,7 +17,6 @@ extern crate log;
 extern crate mount;
 
 use http::headers::content_type::MediaType;
-
 use iron::{Request, Response, Middleware, Alloy, Status, Continue, Unwind};
 use iron::mixin::{GetUrl, Serve};
 use mount::OriginalUrl;
