@@ -8,7 +8,7 @@ tags = ["web", "server", "middleware", "iron", "core", "static", "file"]
 
 [[lib]]
 
-name = "cookie"
+name = "staticfile"
 path = "src/lib.rs"
 
 [dependencies.iron]
