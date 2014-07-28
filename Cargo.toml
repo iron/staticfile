@@ -2,9 +2,7 @@
 
 name = "staticfile"
 version = "0.1.0"
-readme = "README.md"
 authors = ["Zach Pomerantz <zmp@umich.edu>"]
-tags = ["web", "server", "middleware", "iron", "core", "static", "file"]
 
 [[lib]]
 

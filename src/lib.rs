@@ -18,7 +18,6 @@ extern crate mount;
 
 use http::headers::content_type::MediaType;
 use iron::{Request, Response, Middleware, Alloy, Status, Continue, Unwind};
-use iron::mixin::{GetUrl, Serve};
 use mount::OriginalUrl;
 
 /// The static file-serving `Middleware`.
@@ -77,88 +76,86 @@ impl Static {
 
 impl Middleware for Static {
     fn enter(&mut self, req: &mut Request, res: &mut Response, alloy: &mut Alloy) -> Status {
-        match req.url() {
-            Some(path) => {
-                // Check for requested file
-                match res.serve_file(&self.root_path.join(
-                    Path::new(
-                        // Coerce to relative path.
-                        // We include the slash to ensure that you never have a path like ".index.html"
-                        // when you meant "./index.html", see http://is.gd/yz9p0B for an example.
-                        "./".to_string().append(path.as_slice())))) {
-                    Ok(()) => {
-                        debug!("Serving static file at {}.",
-                            &self.root_path.join("./".to_string().append(path.as_slice())).display());
-                        return Unwind
-                    },
-                    Err(_) => ()
-                }
+        // Coerce to relative path.
+        // We include the slash to ensure that you never have a path like ".index.html"
+        // when you meant "./index {
+        let requested_path =
+            &self.root_path.join(Path::new("./".to_string().append(req.url.as_slice())));
 
-                // Check for index.html
-                let index_path = self.root_path.join(
-                    Path::new("./".to_string().append(path.as_slice()))
-                        .join("./index.html".to_string()));
-                if index_path.is_file() {
-                    // Avoid serving as a directory
-                    if path.len() > 0 {
-                        match path.as_slice().char_at_reverse(path.len()) {
-                            '/' => {
-                                match res.serve_file(&index_path) {
-                                    Ok(()) => {
-                                        debug!("Serving static file at {}.",
-                                            &index_path.display());
-                                        return Unwind
-                                    },
-                                    Err(err) => {
-                                        debug!("Failed while trying to serve index.html: {}", err)
-                                        return Continue
-                                    }
-                                }
-                            },
-                    // 303:
-                            _ => ()
-                        }
-                    }
-                    let redirect_path = match alloy.find::<OriginalUrl>() {
-                        Some(&OriginalUrl(ref original_url)) => original_url.clone(),
-                        None => path.clone()
-                    }.append("/");
-                    res.headers.extensions.insert("Location".to_string(), redirect_path.clone());
-                    let _ = res.serve(::http::status::SeeOther,
-                        format!("Redirecting to {}/", redirect_path).as_slice());
-                    return Unwind
+        if requested_path.is_file() {
+            match res.serve_file(requested_path) {
+                Ok(()) => {
+                    debug!("Serving static file at {}", requested_path.display());
+                    return Unwind;
+                },
+                Err(e) => {
+                    error!("Errored trying to send file at {} with {}",
+                          requested_path.display(), e);
+                    return Continue;
                 }
-            },
-            None => ()
+            }
         }
+
+        // Check for index.html
+        let index_path = self.root_path.join(
+            Path::new("./".to_string().append(req.url.as_slice()))
+                .join("./index.html".to_string())
+        );
+
+        // Avoid serving a directory
+        if index_path.is_file() {
+            if req.url.len() > 0 {
+                match req.url.as_slice().char_at_reverse(req.url.len()) {
+                    '/' => {
+                        match res.serve_file(&index_path) {
+                            Ok(()) => {
+                                debug!("Serving static file at {}.", &index_path.display());
+                                return Unwind
+                            },
+                            Err(err) => {
+                                debug!("Failed while trying to serve index.html: {}", err);
+                                return Continue
+                            }
+                        }
+                    },
+                    // 303:
+                    _ => ()
+                }
+            }
+
+            let redirect_path = match alloy.find::<OriginalUrl>() {
+                Some(&OriginalUrl(ref original_url)) => original_url.clone(),
+                None => req.url.clone()
+            }.append("/");
+            res.headers.extensions.insert("Location".to_string(), redirect_path.clone());
+            let _ = res.serve(::http::status::SeeOther,
+                              format!("Redirecting to {}/", redirect_path));
+            return Unwind
+        }
+
         Continue
     }
 }
 
 impl Middleware for Favicon {
     fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
-        match req.url() {
-            Some(path) => {
-                if regex!("/favicon.ico$").is_match(path.as_slice()) {
-                    res.headers.content_type = Some(MediaType {
-                        type_: "image".to_string(),
-                        subtype: "x-icon".to_string(),
-                        parameters: vec![]
-                    });
-                    res.headers.cache_control = Some(format!("public, max-age={}", self.max_age));
-                    let _ = res.try_write_headers();
-                    match res.serve_file(&self.favicon_path) {
-                        Ok(()) => (),
-                        Err(_) => {
-                            let _ = res.serve(::http::status::InternalServerError,
-                                "Failed to serve favicon.ico.");
-                        }
-                    }
-                    return Unwind;
+        if regex!("/favicon.ico$").is_match(req.url.as_slice()) {
+            res.headers.content_type = Some(MediaType {
+                type_: "image".to_string(),
+                subtype: "x-icon".to_string(),
+                parameters: vec![]
+            });
+            res.headers.cache_control = Some(format!("public, max-age={}", self.max_age));
+            match res.serve_file(&self.favicon_path) {
+                Ok(()) => (),
+                Err(_) => {
+                    let _ = res.serve(::http::status::InternalServerError,
+                                      "Failed to serve favicon.ico.");
                 }
-            },
-            None => ()
+            }
+            Unwind
+        } else {
+            Continue
         }
-        Continue
     }
 }
