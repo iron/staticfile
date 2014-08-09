@@ -19,11 +19,11 @@ fn main() {
     let mut server: Server = Iron::new();
 
     // Serve the stylesheet at /main.css
-    server.chain.link(Mount::new("/main.css", Static::new(Path::new("doc/main.css"))));
+    server.chain.link(Mount::new(&["main.css"], Static::new(Path::new("target/doc/main.css"))));
     // Serve the docs at /doc/
-    server.chain.link(Mount::new("/doc", Static::new(Path::new("doc/staticfile/"))));
+    server.chain.link(Mount::new(&["doc"], Static::new(Path::new("target/doc/staticfile/"))));
     // Serve the source code at /src/
-    server.chain.link(Mount::new("/src", Static::new(Path::new("doc/src/"))));
+    server.chain.link(Mount::new(&["src"], Static::new(Path::new("target/doc/src/"))));
 
     server.listen(Ipv4Addr(127, 0, 0, 1), 3000);
 }
