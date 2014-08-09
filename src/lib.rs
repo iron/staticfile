@@ -108,7 +108,7 @@ impl Middleware for Static {
             // appending a forward slash to URLs like http://example.com
             // Just in case a Middleware has mutated the URL's path to violate this property,
             // the empty list case is handled as a redirect.
-            // XXX: iron/mount currently violates this property.
+            // XXX: iron/mount currently violates this property (2014-08-09).
             match url_path.last().as_ref().map(|s| s.as_slice()) {
                 Some("") => {
                     match res.serve_file(&index_path) {
@@ -166,5 +166,34 @@ impl Middleware for Favicon {
         } else {
             Continue
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use url::Url;
+
+    /// Test that rust-url always provides a path for http URLs.
+    #[test]
+    fn test_rust_url_path_unwrap() {
+        assert!(Url::parse("http://example.com").unwrap().path().is_some());
+    }
+
+    /// Test that rust-url always provides a *non-empty* path for http URLs.
+    /// Depends on `test_rust_url_path_unwrap`.
+    #[test]
+    fn test_rust_url_path_non_empty() {
+        let url = Url::parse("http://example.com").unwrap();
+        assert_eq!(url.path().unwrap(), &["".to_string()]);
+    }
+
+    /// Test that rust-url differentiates paths which end in slashes by storing "".
+    /// Depends on `test_rust_url_path_unwrap` and `test_rust_url_path_non_empty`.
+    #[test]
+    fn test_rust_url_path_slash_append() {
+        let url = Url::parse("http://example.com/doc/").unwrap();
+        assert_eq!(url.path().unwrap().last().unwrap(), &"".to_string());
+        let url = Url::parse("http://example.com/doc").unwrap();
+        assert_eq!(url.path().unwrap().last().unwrap(), &"doc".to_string());
     }
 }
