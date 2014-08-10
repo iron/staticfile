@@ -17,7 +17,7 @@ extern crate log;
 extern crate mount;
 
 use http::headers::content_type::MediaType;
-use iron::{Request, Response, Middleware, Alloy, Status, Continue, Unwind};
+use iron::{Request, Response, Middleware, Status, Continue, Unwind};
 use mount::OriginalUrl;
 
 /// The static file-serving `Middleware`.
@@ -75,15 +75,17 @@ impl Static {
 }
 
 impl Middleware for Static {
-    fn enter(&mut self, req: &mut Request, res: &mut Response, alloy: &mut Alloy) -> Status {
-        // Coerce to relative path.
-        // We include the slash to ensure that you never have a path like ".index.html"
-        // when you meant "./index {
-        let requested_path =
-            &self.root_path.join(Path::new("./".to_string().append(req.url.as_slice())));
+    fn enter(&mut self, req: &mut Request, res: &mut Response) -> Status {
+        // Get the URL path as a list of Strings.
+        // Unwrapping is safe because we're using a relative scheme (http), see rust-url.
+        let url_path: &[String] = req.url.path().unwrap();
 
+        // Create a file path by combining the Middleware's root path and the URL path.
+        let requested_path = self.root_path.join(Path::new("").join_many(url_path));
+
+        // If the requested path matches a real file, serve it.
         if requested_path.is_file() {
-            match res.serve_file(requested_path) {
+            match res.serve_file(&requested_path) {
                 Ok(()) => {
                     debug!("Serving static file at {}", requested_path.display());
                     return Unwind;
@@ -96,50 +98,57 @@ impl Middleware for Static {
             }
         }
 
-        // Check for index.html
-        let index_path = self.root_path.join(
-            Path::new("./".to_string().append(req.url.as_slice()))
-                .join("./index.html".to_string())
-        );
-
-        // Avoid serving a directory
+        // If the requested path is a directory containing an index.html, serve it.
+        let index_path = requested_path.join("index.html");
         if index_path.is_file() {
-            if req.url.len() > 0 {
-                match req.url.as_slice().char_at_reverse(req.url.len()) {
-                    '/' => {
-                        match res.serve_file(&index_path) {
-                            Ok(()) => {
-                                debug!("Serving static file at {}.", &index_path.display());
-                                return Unwind
-                            },
-                            Err(err) => {
-                                debug!("Failed while trying to serve index.html: {}", err);
-                                return Continue
-                            }
+            // If the URL ends in a slash, serve the file directly.
+            // As per servo/rust-url/serialize_path, URLs ending in a slash have
+            // an empty string stored as the last component of their path.
+            // Rust-url even ensures that url.path() is non-empty by
+            // appending a forward slash to URLs like http://example.com
+            // Just in case a Middleware has mutated the URL's path to violate this property,
+            // the empty list case is handled as a redirect.
+            // XXX: iron/mount currently violates this property (2014-08-09).
+            match url_path.last().as_ref().map(|s| s.as_slice()) {
+                Some("") => {
+                    match res.serve_file(&index_path) {
+                        Ok(()) => {
+                            debug!("Serving static file at {}.", index_path.display());
+                            return Unwind;
+                        },
+                        Err(err) => {
+                            debug!("Failed while trying to serve index.html: {}", err);
+                            return Continue;
                         }
-                    },
-                    // 303:
-                    _ => ()
-                }
+                    }
+                },
+                // Otherwise, redirect to the directory equivalent of the URL, ala Apache.
+                // Some(_) corresponds to a path without a trailing slash, whilst None
+                // corresponds to a path that has been mutated by Middleware into the empty list.
+                Some(_) | None => {}
             }
 
-            let redirect_path = match alloy.find::<OriginalUrl>() {
-                Some(&OriginalUrl(ref original_url)) => original_url.clone(),
-                None => req.url.clone()
-            }.append("/");
+            // Perform an HTTP 301 Redirect.
+            let redirect_path = match req.alloy.find::<OriginalUrl>() {
+                Some(&OriginalUrl(ref original_url)) => format!("{}/", original_url),
+                None => format!("{}/", req.url)
+            };
             res.headers.extensions.insert("Location".to_string(), redirect_path.clone());
-            let _ = res.serve(::http::status::SeeOther,
-                              format!("Redirecting to {}/", redirect_path));
-            return Unwind
+            let _ = res.serve(::http::status::MovedPermanently,
+                                format!("Redirecting to {}/", redirect_path));
+            return Unwind;
         }
 
+        // If no file is found, continue to other middleware.
         Continue
     }
 }
 
 impl Middleware for Favicon {
-    fn enter(&mut self, req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
-        if regex!("/favicon.ico$").is_match(req.url.as_slice()) {
+    fn enter(&mut self, req: &mut Request, res: &mut Response) -> Status {
+        // Note: Unwrap is safe, see comment for `Static`.
+        let url_query = req.url.serialize_path().unwrap();
+        if regex!("/favicon.ico$").is_match(url_query.as_slice()) {
             res.headers.content_type = Some(MediaType {
                 type_: "image".to_string(),
                 subtype: "x-icon".to_string(),
@@ -157,5 +166,34 @@ impl Middleware for Favicon {
         } else {
             Continue
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use url::Url;
+
+    /// Test that rust-url always provides a path for http URLs.
+    #[test]
+    fn test_rust_url_path_unwrap() {
+        assert!(Url::parse("http://example.com").unwrap().path().is_some());
+    }
+
+    /// Test that rust-url always provides a *non-empty* path for http URLs.
+    /// Depends on `test_rust_url_path_unwrap`.
+    #[test]
+    fn test_rust_url_path_non_empty() {
+        let url = Url::parse("http://example.com").unwrap();
+        assert_eq!(url.path().unwrap(), &["".to_string()]);
+    }
+
+    /// Test that rust-url differentiates paths which end in slashes by storing "".
+    /// Depends on `test_rust_url_path_unwrap` and `test_rust_url_path_non_empty`.
+    #[test]
+    fn test_rust_url_path_slash_append() {
+        let url = Url::parse("http://example.com/doc/").unwrap();
+        assert_eq!(url.path().unwrap().last().unwrap(), &"".to_string());
+        let url = Url::parse("http://example.com/doc").unwrap();
+        assert_eq!(url.path().unwrap().last().unwrap(), &"doc".to_string());
     }
 }
