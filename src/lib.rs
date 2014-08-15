@@ -5,7 +5,6 @@
 
 //! Static file-serving middleware.
 
-extern crate url;
 #[phase(plugin)]
 extern crate regex_macros;
 extern crate regex;
@@ -17,7 +16,7 @@ extern crate log;
 extern crate mount;
 
 use http::headers::content_type::MediaType;
-use iron::{Request, Response, Middleware, Status, Continue, Unwind};
+use iron::{Request, Response, Middleware, Status, Continue, Unwind, Url};
 use mount::OriginalUrl;
 
 /// The static file-serving `Middleware`.
@@ -76,9 +75,8 @@ impl Static {
 
 impl Middleware for Static {
     fn enter(&mut self, req: &mut Request, res: &mut Response) -> Status {
-        // Get the URL path as a list of Strings.
-        // Unwrapping is safe because we're using a relative scheme (http), see rust-url.
-        let url_path: &[String] = req.url.path().unwrap();
+        // Get the URL path as a slice of Strings.
+        let url_path: &[String] = req.url.path.as_slice();
 
         // Create a file path by combining the Middleware's root path and the URL path.
         let requested_path = self.root_path.join(Path::new("").join_many(url_path));
@@ -108,7 +106,6 @@ impl Middleware for Static {
             // appending a forward slash to URLs like http://example.com
             // Just in case a Middleware has mutated the URL's path to violate this property,
             // the empty list case is handled as a redirect.
-            // XXX: iron/mount currently violates this property (2014-08-09).
             match url_path.last().as_ref().map(|s| s.as_slice()) {
                 Some("") => {
                     match res.serve_file(&index_path) {
@@ -129,7 +126,7 @@ impl Middleware for Static {
             }
 
             // Perform an HTTP 301 Redirect.
-            let redirect_path = match req.alloy.find::<OriginalUrl>() {
+            let redirect_path = match req.extensions.find::<OriginalUrl>() {
                 Some(&OriginalUrl(ref original_url)) => format!("{}/", original_url),
                 None => format!("{}/", req.url)
             };
@@ -146,9 +143,7 @@ impl Middleware for Static {
 
 impl Middleware for Favicon {
     fn enter(&mut self, req: &mut Request, res: &mut Response) -> Status {
-        // Note: Unwrap is safe, see comment for `Static`.
-        let url_query = req.url.serialize_path().unwrap();
-        if regex!("/favicon.ico$").is_match(url_query.as_slice()) {
+        if req.url.path.as_slice() == ["favicon.ico".to_string()] {
             res.headers.content_type = Some(MediaType {
                 type_: "image".to_string(),
                 subtype: "x-icon".to_string(),
@@ -169,31 +164,3 @@ impl Middleware for Favicon {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use url::Url;
-
-    /// Test that rust-url always provides a path for http URLs.
-    #[test]
-    fn test_rust_url_path_unwrap() {
-        assert!(Url::parse("http://example.com").unwrap().path().is_some());
-    }
-
-    /// Test that rust-url always provides a *non-empty* path for http URLs.
-    /// Depends on `test_rust_url_path_unwrap`.
-    #[test]
-    fn test_rust_url_path_non_empty() {
-        let url = Url::parse("http://example.com").unwrap();
-        assert_eq!(url.path().unwrap(), &["".to_string()]);
-    }
-
-    /// Test that rust-url differentiates paths which end in slashes by storing "".
-    /// Depends on `test_rust_url_path_unwrap` and `test_rust_url_path_non_empty`.
-    #[test]
-    fn test_rust_url_path_slash_append() {
-        let url = Url::parse("http://example.com/doc/").unwrap();
-        assert_eq!(url.path().unwrap().last().unwrap(), &"".to_string());
-        let url = Url::parse("http://example.com/doc").unwrap();
-        assert_eq!(url.path().unwrap().last().unwrap(), &"doc".to_string());
-    }
-}
