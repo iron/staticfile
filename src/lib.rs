@@ -16,7 +16,7 @@ extern crate log;
 extern crate mount;
 
 use http::headers::content_type::MediaType;
-use iron::{Request, Response, Middleware, Status, Continue, Unwind, Url};
+use iron::{Request, Response, Middleware, Status, Continue, Unwind};
 use mount::OriginalUrl;
 
 /// The static file-serving `Middleware`.
