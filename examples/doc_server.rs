@@ -2,7 +2,7 @@ extern crate iron;
 extern crate staticfile;
 
 // This example will serve the docs (from target/doc).
-// To use, `cargo test && cargo doc && target/test/doc`.
+// To use, `cargo doc && cargo test && target/doc_server`.
 
 use std::io::net::ip::Ipv4Addr;
 

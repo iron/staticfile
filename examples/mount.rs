@@ -5,7 +5,7 @@ extern crate mount;
 // This example will serve the docs (from doc), but
 // mounting it from a different path.
 //
-// To use, `make examples doc && ./examples/mount`, then
+// To use, `cargo doc && cargo test && ./target/mount`, then
 // point your browser to 127.0.0.1:3000/doc/
 
 use std::io::net::ip::Ipv4Addr;
