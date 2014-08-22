@@ -16,7 +16,7 @@ extern crate log;
 extern crate mount;
 
 use http::headers::content_type::MediaType;
-use iron::{Request, Response, Middleware, Status, Continue, Unwind};
+use iron::{Request, Response, Middleware, Url, Status, Continue, Unwind};
 use mount::OriginalUrl;
 
 /// The static file-serving `Middleware`.
@@ -102,10 +102,10 @@ impl Middleware for Static {
             // If the URL ends in a slash, serve the file directly.
             // As per servo/rust-url/serialize_path, URLs ending in a slash have
             // an empty string stored as the last component of their path.
-            // Rust-url even ensures that url.path() is non-empty by
+            // Rust-url even ensures that url.path is non-empty by
             // appending a forward slash to URLs like http://example.com
-            // Just in case a Middleware has mutated the URL's path to violate this property,
-            // the empty list case is handled as a redirect.
+            // Some middleware may mutate the URL's path to violate this property,
+            // so the empty list case is handled as a redirect.
             match url_path.last().as_ref().map(|s| s.as_slice()) {
                 Some("") => {
                     match res.serve_file(&index_path) {
@@ -126,13 +126,13 @@ impl Middleware for Static {
             }
 
             // Perform an HTTP 301 Redirect.
-            let redirect_path = match req.extensions.find::<OriginalUrl>() {
-                Some(&OriginalUrl(ref original_url)) => format!("{}/", original_url),
+            let redirect_path = match req.extensions.find::<OriginalUrl, Url>() {
+                Some(original_url) => format!("{}/", original_url),
                 None => format!("{}/", req.url)
             };
             res.headers.extensions.insert("Location".to_string(), redirect_path.clone());
             let _ = res.serve(::http::status::MovedPermanently,
-                                format!("Redirecting to {}/", redirect_path));
+                                format!("Redirecting to {}", redirect_path));
             return Unwind;
         }
 
