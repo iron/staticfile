@@ -1,8 +1,8 @@
-#![crate_name = "staticfile"]
+#![crate_name = "static_file"]
 #![deny(missing_doc)]
 #![feature(phase)]
 
-//! Static file-serving middleware.
+//! Static file-serving handler.
 
 #[phase(plugin)]
 extern crate regex_macros;
@@ -14,83 +14,72 @@ extern crate iron;
 extern crate log;
 extern crate mount;
 
-use http::headers::content_type::MediaType;
-use iron::{Request, Response, Middleware, Url, Status, Continue, Unwind};
+use iron::{Request, Response, Url, Handler, Error, IronResult};
+use iron::status;
 use mount::OriginalUrl;
+use std::io::IoError;
 
-/// The static file-serving `Middleware`.
+/// The static file-serving `Handler`.
+///
+/// This handler serves files from a single filesystem path, which may be absolute or relative.
+/// Incoming requests are mapped onto the filesystem by appending their URL path to the handler's
+/// root path. If the filesystem path corresponds to a regular file, the handler will attempt to
+/// serve it. Otherwise, if the path corresponds to a directory containing an `index.html`,
+/// the handler will attempt to serve that instead. If the path doesn't match any real object
+/// in the filesystem, the handler will return `Err(Box<NoFile>)`. If an IO error occurs
+/// whilst attempting to serve a file, `Err(Box<FileError(IoError)>)` will be returned.
 #[deriving(Clone)]
 pub struct Static {
     root_path: Path
 }
 
-#[deriving(Clone)]
-#[doc(hidden)]
-struct Favicon {
-    max_age: u8,
-    favicon_path: Path
+/// The error returned when a requested URL doesn't map to a real file.
+#[deriving(Show)]
+pub struct NoFile;
+
+/// The error returned when an IoError occurs during file serving.
+#[deriving(Show)]
+pub struct FileError(IoError);
+
+impl Error for NoFile {
+    fn name(&self) -> &'static str { "No File" }
+}
+
+impl Error for FileError {
+    fn name(&self) -> &'static str {
+        let &FileError(ref error) = self;
+        error.desc
+    }
 }
 
 impl Static {
     /// Create a new instance of `Static` with a given root path.
     ///
-    /// This will attempt to serve static files from the given root path.
-    /// The path may be relative or absolute. If `Path::new("")` is given,
-    /// files will be served from the current directory.
-    ///
-    /// If a static file exists and can be read from, `enter` will serve it to
-    /// the `Response` and `Unwind` the middleware stack with a status of `200`.
-    ///
-    /// In the case of any error, it will `Continue` through the stack.
-    /// If a file should have been read but cannot, due to permissions or
-    /// read errors, a different `Middleware` should handle it.
-    ///
-    /// If the path is '/', it will attempt to serve `index.html`.
+    /// If `Path::new("")` is given, files will be served from the current directory.
     pub fn new(root_path: Path) -> Static {
         Static {
             root_path: root_path
         }
     }
-
-    /// Create a favicon server from the given filepath.
-    ///
-    /// This will serve your favicon, as specified by `favicon_path`,
-    /// to every request ending in "/favicon.ico" that it sees,
-    /// and then unwind the middleware stack for those requests.
-    ///
-    /// It should be linked first in order to avoid additional processing
-    /// for simple favicon requests.
-    ///
-    /// Unlike normally served static files, favicons are given a max-age,
-    /// specified in seconds.
-    #[allow(visible_private_types)]
-    pub fn favicon(favicon_path: Path, max_age: u8) -> Favicon {
-        Favicon {
-            max_age: max_age,
-            favicon_path: favicon_path
-        }
-    }
 }
 
-impl Middleware for Static {
-    fn enter(&mut self, req: &mut Request, res: &mut Response) -> Status {
+impl Handler for Static {
+    fn call(&self, req: &mut Request) -> IronResult<Response> {
         // Get the URL path as a slice of Strings.
         let url_path: &[String] = req.url.path.as_slice();
 
-        // Create a file path by combining the Middleware's root path and the URL path.
+        // Create a file path by combining the handler's root path and the URL path.
         let requested_path = self.root_path.join(Path::new("").join_many(url_path));
 
         // If the requested path matches a real file, serve it.
         if requested_path.is_file() {
-            match res.serve_file(&requested_path) {
-                Ok(()) => {
+            match Response::from_file(&requested_path) {
+                Ok(response) => {
                     debug!("Serving static file at {}", requested_path.display());
-                    return Unwind;
+                    return Ok(response);
                 },
-                Err(e) => {
-                    error!("Errored trying to send file at {} with {}",
-                          requested_path.display(), e);
-                    return Continue;
+                Err(err) => {
+                    return Err(box FileError(err) as Box<Error + Send>);
                 }
             }
         }
@@ -107,14 +96,13 @@ impl Middleware for Static {
             // so the empty list case is handled as a redirect.
             match url_path.last().as_ref().map(|s| s.as_slice()) {
                 Some("") => {
-                    match res.serve_file(&index_path) {
-                        Ok(()) => {
+                    match Response::from_file(&index_path) {
+                        Ok(response) => {
                             debug!("Serving static file at {}.", index_path.display());
-                            return Unwind;
+                            return Ok(response);
                         },
                         Err(err) => {
-                            debug!("Failed while trying to serve index.html: {}", err);
-                            return Continue;
+                            return Err(box FileError(err) as Box<Error + Send>);
                         }
                     }
                 },
@@ -129,37 +117,13 @@ impl Middleware for Static {
                 Some(original_url) => format!("{}/", original_url),
                 None => format!("{}/", req.url)
             };
-            res.headers.extensions.insert("Location".to_string(), redirect_path.clone());
-            let _ = res.serve(::http::status::MovedPermanently,
-                                format!("Redirecting to {}", redirect_path));
-            return Unwind;
+            let mut res = Response::with(status::MovedPermanently,
+                            format!("Redirecting to {}", redirect_path));
+            res.headers.extensions.insert("Location".to_string(), redirect_path);
+            return Ok(res);
         }
 
-        // If no file is found, continue to other middleware.
-        Continue
+        // If no file is found, return an appropriate error.
+        Err(box NoFile as Box<Error + Send>)
     }
 }
-
-impl Middleware for Favicon {
-    fn enter(&mut self, req: &mut Request, res: &mut Response) -> Status {
-        if req.url.path.as_slice() == ["favicon.ico".to_string()] {
-            res.headers.content_type = Some(MediaType {
-                type_: "image".to_string(),
-                subtype: "x-icon".to_string(),
-                parameters: vec![]
-            });
-            res.headers.cache_control = Some(format!("public, max-age={}", self.max_age));
-            match res.serve_file(&self.favicon_path) {
-                Ok(()) => (),
-                Err(_) => {
-                    let _ = res.serve(::http::status::InternalServerError,
-                                      "Failed to serve favicon.ico.");
-                }
-            }
-            Unwind
-        } else {
-            Continue
-        }
-    }
-}
-
