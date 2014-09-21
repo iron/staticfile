@@ -18,6 +18,7 @@ use iron::{Request, Response, Url, Handler, Error, IronResult};
 use iron::status;
 use mount::OriginalUrl;
 use std::io::IoError;
+use std::io::fs::PathExtensions;
 
 /// The static file-serving `Handler`.
 ///
