@@ -26,25 +26,21 @@ use std::io::fs::PathExtensions;
 /// Incoming requests are mapped onto the filesystem by appending their URL path to the handler's
 /// root path. If the filesystem path corresponds to a regular file, the handler will attempt to
 /// serve it. Otherwise, if the path corresponds to a directory containing an `index.html`,
-/// the handler will attempt to serve that instead. If the path doesn't match any real object
-/// in the filesystem, the handler will return `Err(Box<NoFile>)`. If an IO error occurs
-/// whilst attempting to serve a file, `Err(Box<FileError(IoError)>)` will be returned.
+/// the handler will attempt to serve that instead.
+///
+/// ## Errors
+///
+/// If the path doesn't match any real object in the filesystem, the handler will return
+/// a Response with `status::NotFound`. If an IO error occurs whilst attempting to serve
+/// a file, `FileError(IoError)` will be returned.
 #[deriving(Clone)]
 pub struct Static {
     root_path: Path
 }
 
-/// The error returned when a requested URL doesn't map to a real file.
-#[deriving(Show)]
-pub struct NoFile;
-
 /// The error returned when an IoError occurs during file serving.
 #[deriving(Show)]
 pub struct FileError(IoError);
-
-impl Error for NoFile {
-    fn name(&self) -> &'static str { "No File" }
-}
 
 impl Error for FileError {
     fn name(&self) -> &'static str {
@@ -124,7 +120,7 @@ impl Handler for Static {
             return Ok(res);
         }
 
-        // If no file is found, return an appropriate error.
-        Err(NoFile.erase())
+        // If no file is found, return a 404 response.
+        Ok(Response::status(status::NotFound))
     }
 }
