@@ -80,7 +80,7 @@ impl Handler for Static {
                     return Ok(response);
                 },
                 Err(err) => {
-                    return Err(FileError(err).abstract());
+                    return Err(FileError(err).erase());
                 }
             }
         }
@@ -103,7 +103,7 @@ impl Handler for Static {
                             return Ok(response);
                         },
                         Err(err) => {
-                            return Err(FileError(err).abstract());
+                            return Err(FileError(err).erase());
                         }
                     }
                 },
@@ -125,6 +125,6 @@ impl Handler for Static {
         }
 
         // If no file is found, return an appropriate error.
-        Err(NoFile.abstract())
+        Err(NoFile.erase())
     }
 }
