@@ -1,0 +1,98 @@
+use std::io::fs::PathExtensions;
+use time::{
+	mod,
+	Timespec,
+};
+
+use iron::{
+	status,
+	Error,
+	Handler,
+	IronResult,
+	Request,
+	Response,
+};
+use super::Static;
+use super::errors::FileError;
+use super::requested_path::RequestedPath;
+
+
+/// Extends the `Static` handler with 304 caching.
+///
+/// If the client has a cached version of the requested file and the file hasn't
+/// been modified since it was cached, this handler returns the
+/// "304 Not Modified" response instead of the actual file.
+pub struct StaticWithCache {
+	root_path     : Path,
+	static_handler: Static,
+}
+
+impl StaticWithCache {
+	/// Create a new instance of `StaticWithCache` with a given root path.
+    ///
+    /// If `Path::new("")` is given, files will be served from the current
+    /// directory.
+	pub fn new(root_path: Path) -> StaticWithCache {
+		StaticWithCache {
+			root_path     : root_path.clone(),
+			static_handler: Static::new(root_path),
+		}
+	}
+
+	// Defers to the static handler, but adds cache headers to the response.
+	fn defer_and_add_headers(&self, request: &mut Request, modified: Timespec) -> IronResult<Response> {
+		match self.static_handler.call(request) {
+			Err(error) => Err(error),
+
+			Ok(mut response) => {
+				response.headers.cache_control =
+					Some("public, max-age=31536000".to_string());
+				response.headers.last_modified =
+					Some(time::at(modified));
+
+				Ok(response)
+			},
+		}
+	}
+}
+
+impl Handler for StaticWithCache {
+	fn call(&self, request: &mut Request) -> IronResult<Response> {
+		let requested_path = RequestedPath::new(&self.root_path, request);
+
+		if requested_path.should_redirect(request) {
+			return self.static_handler.call(request);
+		}
+
+		match requested_path.get_file() {
+			Some(file) => {
+				let last_modified_time = match file.stat() {
+					Err(error) => return Err(FileError(error).erase()),
+
+					Ok(file_stat) => {
+						Timespec::new((file_stat.modified / 1000) as i64, 0)
+					},
+				};
+
+				let if_modified_since = match request.headers.if_modified_since {
+					None => return self.defer_and_add_headers(
+						request,
+						last_modified_time
+					),
+
+					Some(tm) => tm.to_timespec(),
+				};
+
+				if last_modified_time <= if_modified_since {
+					Ok(Response::status(status::NotModified))
+				}
+				else {
+					self.defer_and_add_headers(request, last_modified_time)
+				}
+			},
+
+			None =>
+				self.static_handler.call(request)
+		}
+	}
+}
