@@ -1,7 +1,7 @@
 use iron::{Request, Response, Url, Handler, Error, IronResult};
 use iron::status;
 use mount::OriginalUrl;
-use std::io::IoError;
+use super::errors::FileError;
 use super::requested_path::RequestedPath;
 
 /// The static file-serving `Handler`.
@@ -20,17 +20,6 @@ use super::requested_path::RequestedPath;
 #[deriving(Clone)]
 pub struct Static {
     root_path: Path
-}
-
-/// The error returned when an IoError occurs during file serving.
-#[deriving(Show)]
-pub struct FileError(IoError);
-
-impl Error for FileError {
-    fn name(&self) -> &'static str {
-        let &FileError(ref error) = self;
-        error.desc
-    }
 }
 
 impl Static {
