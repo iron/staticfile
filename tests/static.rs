@@ -46,3 +46,24 @@ fn returns_404_if_file_not_found() {
         Err(e) => fail!("{}", e)
     }
 }
+
+#[test]
+fn redirects_if_trailing_slash_is_missing() {
+    let p = ProjectBuilder::new("example").file("dir/index.html", "this is index");
+    p.build();
+
+    let st = Static::new(p.root());
+
+    let mut req = mock::request::at(Get, Url::parse("http://localhost:3000/dir").unwrap());
+
+    match st.call(&mut req) {
+        Ok(res) => {
+            assert_eq!(res.status.unwrap().code(), 301);
+            assert_eq!(
+                res.headers.extensions["Location".to_string()].as_slice(),
+                "http://localhost:3000/dir/"
+            );
+        },
+        Err(e) => fail!("{}", e)
+    }
+}
