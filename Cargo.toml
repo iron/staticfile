@@ -20,3 +20,7 @@ git = "https://github.com/iron/mount.git"
 [dependencies.iron-test]
 
 git = "https://github.com/reem/iron-test"
+
+[dev-dependencies.router]
+
+git = "https://github.com/iron/router.git"
