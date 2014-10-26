@@ -16,7 +16,7 @@
 extern crate iron;
 extern crate mount;
 extern crate router;
-extern crate static_file;
+extern crate static;
 
 use std::io::net::ip::Ipv4Addr;
 
@@ -24,7 +24,7 @@ use iron::status;
 use iron::{Iron, Request, Response, IronResult};
 use mount::Mount;
 use router::Router;
-use static_file::Static;
+use static::Static;
 
 fn say_hello(req: &mut Request) -> IronResult<Response> {
     println!("Running send_hello handler, URL path: {}", req.url.path);

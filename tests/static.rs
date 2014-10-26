@@ -1,12 +1,12 @@
 extern crate http;
 extern crate iron;
 extern crate "iron-test" as iron_test;
-extern crate "static_file" as static_file;
+extern crate "static" as static;
 
 use http::method::Get;
 use iron::{Error, Url, Handler};
 use iron_test::{mock, ProjectBuilder};
-use static_file::Static;
+use static::Static;
 
 #[test]
 fn serves_non_default_file_from_absolute_root_path() {
