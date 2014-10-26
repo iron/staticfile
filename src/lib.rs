@@ -19,7 +19,6 @@ extern crate mount;
 pub use cache_handler::StaticWithCache;
 pub use static_handler::Static;
 
-
 mod cache_handler;
 mod errors;
 mod requested_path;

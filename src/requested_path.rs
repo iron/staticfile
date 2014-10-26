@@ -1,7 +1,6 @@
 use std::io::fs::PathExtensions;
 use iron::Request;
 
-
 pub struct RequestedPath {
     pub path: Path,
 }
@@ -9,13 +8,10 @@ pub struct RequestedPath {
 impl RequestedPath {
     pub fn new(root_path: &Path, request: &Request) -> RequestedPath {
         let path = root_path.join(
-            Path::new("")
-                .join_many(request.url.path.as_slice())
+            Path::new("").join_many(request.url.path.as_slice())
         );
 
-        RequestedPath {
-            path: path,
-        }
+        RequestedPath { path: path }
     }
 
     pub fn should_redirect(&self, request: &Request) -> bool {
@@ -32,7 +28,7 @@ impl RequestedPath {
         // so the empty list case is handled as a redirect.
         let has_trailing_slash = match last_url_element {
             Some("") => true,
-            _        => false,
+            _ => false,
         };
 
         self.path.is_dir() && !has_trailing_slash
@@ -44,10 +40,10 @@ impl RequestedPath {
         }
 
         let index_path = self.path.join("index.html");
+
         if index_path.is_file() {
             Some(index_path)
-        }
-        else {
+        } else {
             None
         }
     }

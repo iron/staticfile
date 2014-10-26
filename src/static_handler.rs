@@ -19,7 +19,8 @@ use super::requested_path::RequestedPath;
 /// a file, `FileError(IoError)` will be returned.
 #[deriving(Clone)]
 pub struct Static {
-    root_path: Path
+    /// The path this handler is serving files from.
+    pub root_path: Path
 }
 
 impl Static {
@@ -27,9 +28,7 @@ impl Static {
     ///
     /// If `Path::new("")` is given, files will be served from the current directory.
     pub fn new(root_path: Path) -> Static {
-        Static {
-            root_path: root_path
-        }
+        Static { root_path: root_path }
     }
 }
 
