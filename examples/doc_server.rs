@@ -1,5 +1,5 @@
 extern crate iron;
-extern crate static;
+extern crate "static" as static_file;
 extern crate mount;
 
 // This example serves the docs from target/doc/static at /doc/
@@ -10,7 +10,7 @@ extern crate mount;
 use std::io::net::ip::Ipv4Addr;
 
 use iron::Iron;
-use static::Static;
+use static_file::Static;
 use mount::Mount;
 
 fn main() {

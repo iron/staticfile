@@ -20,6 +20,8 @@ mount.mount("/src/", Static::new(Path::new("target/doc/src/static/src/lib.rs.htm
 Iron::new(mount).listen(Ipv4Addr(127, 0, 0, 1), 3000);
 ```
 
+Note that `static` is a reserved keyword, so the crate will need to be imported as `extern crate "static" as static_file;`.
+
 See [`examples/doc_server.rs`](examples/doc_server.rs) for a complete example that you can compile.
 
 ## Overview

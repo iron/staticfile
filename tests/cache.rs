@@ -3,7 +3,7 @@ extern crate time;
 extern crate http;
 extern crate iron;
 extern crate "iron-test" as iron_test;
-extern crate static;
+extern crate "static" as static_file;
 
 
 use time::Timespec;
@@ -11,7 +11,7 @@ use time::Timespec;
 use http::method::Get;
 use iron::{Handler, Url};
 use iron_test::{mock, ProjectBuilder};
-use static::StaticWithCache;
+use static_file::StaticWithCache;
 
 
 #[test]
