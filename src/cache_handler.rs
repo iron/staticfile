@@ -2,8 +2,8 @@ use std::io::fs::PathExtensions;
 use time::{mod, Timespec};
 
 use iron::{status, Error, Handler, IronResult, Request, Response};
+use iron::errors::FileError;
 
-use errors::FileError;
 use requested_path::RequestedPath;
 use {Static};
 
