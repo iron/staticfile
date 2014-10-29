@@ -1,8 +1,8 @@
 extern crate iron;
-extern crate static_file;
+extern crate "static" as static_file;
 extern crate mount;
 
-// This example serves the docs from target/doc/static_file at /doc/
+// This example serves the docs from target/doc/static at /doc/
 //
 // Run `cargo doc && cargo test && ./target/doc_server`, then
 // point your browser to http://127.0.0.1:3000/doc/
@@ -19,9 +19,9 @@ fn main() {
     // Serve the shared JS/CSS at /
     mount.mount("/", Static::new(Path::new("target/doc/")));
     // Serve the static file docs at /doc/
-    mount.mount("/doc/", Static::new(Path::new("target/doc/static_file/")));
+    mount.mount("/doc/", Static::new(Path::new("target/doc/static/")));
     // Serve the source code at /src/
-    mount.mount("/src/", Static::new(Path::new("target/doc/src/static_file/src/lib.rs.html")));
+    mount.mount("/src/", Static::new(Path::new("target/doc/src/static/src/lib.rs.html")));
 
     Iron::new(mount).listen(Ipv4Addr(127, 0, 0, 1), 3000);
 

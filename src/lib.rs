@@ -1,4 +1,4 @@
-#![crate_name = "static_file"]
+#![crate_name = "static"]
 #![deny(missing_doc)]
 #![feature(phase)]
 

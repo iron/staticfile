@@ -1,7 +1,7 @@
 extern crate http;
 extern crate iron;
 extern crate "iron-test" as iron_test;
-extern crate "static_file" as static_file;
+extern crate "static" as static_file;
 
 use http::method::Get;
 use iron::{Error, Url, Handler};

@@ -1,12 +1,12 @@
 [package]
 
-name = "static_file"
+name = "static"
 version = "0.1.0"
 authors = ["Zach Pomerantz <zmp@umich.edu>"]
 
 [lib]
 
-name = "static_file"
+name = "static"
 path = "src/lib.rs"
 
 [dependencies.iron]

@@ -16,7 +16,7 @@
 extern crate iron;
 extern crate mount;
 extern crate router;
-extern crate static_file;
+extern crate "static" as static_file;
 
 use std::io::net::ip::Ipv4Addr;
 

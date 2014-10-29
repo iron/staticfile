@@ -3,7 +3,7 @@ extern crate time;
 extern crate http;
 extern crate iron;
 extern crate "iron-test" as iron_test;
-extern crate static_file;
+extern crate "static" as static_file;
 
 
 use time::Timespec;
