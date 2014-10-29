@@ -1,8 +1,7 @@
 use iron::{Request, Response, Url, Handler, Error, IronResult};
 use iron::status;
 use mount::OriginalUrl;
-use super::errors::FileError;
-use super::requested_path::RequestedPath;
+use requested_path::RequestedPath;
 
 /// The static file-serving `Handler`.
 ///
@@ -58,7 +57,7 @@ impl Handler for Static {
                         return Ok(response);
                     },
                     Err(err) => {
-                        return Err(FileError(err).erase());
+                        return Err(err.erase());
                     }
                 },
 
