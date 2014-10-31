@@ -1,7 +1,7 @@
 use std::io::fs::PathExtensions;
 use time::{mod, Timespec};
 
-use iron::{status, Error, Handler, IronResult, IronError, Request, Response};
+use iron::{status, Handler, IronResult, IronError, Request, Response};
 use iron::errors::FileError;
 
 use requested_path::RequestedPath;

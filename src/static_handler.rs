@@ -1,4 +1,4 @@
-use iron::{Request, Response, Url, Handler, Error, IronResult, IronError};
+use iron::{Request, Response, Url, Handler, IronResult, IronError};
 use iron::status;
 use mount::OriginalUrl;
 use requested_path::RequestedPath;

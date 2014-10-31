@@ -1,5 +1,6 @@
 #![crate_name = "static"]
-#![deny(missing_doc)]
+#![deny(missing_docs)]
+#![deny(warnings)]
 #![feature(phase)]
 
 //! Static file-serving handler.
