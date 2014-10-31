@@ -1,4 +1,4 @@
-use iron::{Request, Response, Url, Handler, Error, IronResult};
+use iron::{Request, Response, Url, Handler, Error, IronResult, IronError};
 use iron::status;
 use mount::OriginalUrl;
 use requested_path::RequestedPath;
@@ -57,7 +57,7 @@ impl Handler for Static {
                         return Ok(response);
                     },
                     Err(err) => {
-                        return Err(err.erase());
+                        return Err(box err as IronError);
                     }
                 },
 
