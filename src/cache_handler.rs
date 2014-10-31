@@ -1,7 +1,7 @@
 use std::io::fs::PathExtensions;
 use time::{mod, Timespec};
 
-use iron::{status, Error, Handler, IronResult, Request, Response};
+use iron::{status, Error, Handler, IronResult, IronError, Request, Response};
 use iron::errors::FileError;
 
 use requested_path::RequestedPath;
@@ -54,7 +54,7 @@ impl Handler for StaticWithCache {
         match requested_path.get_file() {
             Some(file) => {
                 let last_modified_time = match file.stat() {
-                    Err(error) => return Err(FileError(error).erase()),
+                    Err(error) => return Err(box FileError(error) as IronError),
 
                     Ok(file_stat) => {
                         Timespec::new((file_stat.modified / 1000) as i64, 0)
