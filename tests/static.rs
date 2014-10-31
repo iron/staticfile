@@ -16,7 +16,7 @@ fn serves_non_default_file_from_absolute_root_path() {
     let mut req = mock::request::at(Get, Url::parse("http://localhost:3000/file1.html").unwrap());
     match st.call(&mut req) {
         Ok(res) => assert_eq!(res.body.unwrap().read_to_string().unwrap(), "this is file1".to_string()),
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
 
@@ -28,7 +28,7 @@ fn serves_default_file_from_absolute_root_path() {
     let mut req = mock::request::at(Get, Url::parse("http://localhost:3000").unwrap());
     match st.call(&mut req) {
         Ok(res) => assert_eq!(res.body.unwrap().read_to_string().unwrap(), "this is index".to_string()),
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
 
@@ -43,7 +43,7 @@ fn returns_404_if_file_not_found() {
         Ok(res) => {
             assert_eq!(res.status.unwrap().code(), 404);
         },
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
 
@@ -64,6 +64,6 @@ fn redirects_if_trailing_slash_is_missing() {
                 "http://localhost:3000/dir/"
             );
         },
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }

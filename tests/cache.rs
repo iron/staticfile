@@ -27,7 +27,7 @@ fn it_should_return_cache_headers() {
             assert!(res.headers.cache_control.is_some());
             assert!(res.headers.last_modified.is_some());
         },
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
 
@@ -42,7 +42,7 @@ fn it_should_return_the_file_if_client_sends_no_modified_time() {
 
     match st.call(&mut req) {
         Ok(res) => assert_eq!(res.status.unwrap().code(), 200),
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
 
@@ -61,7 +61,7 @@ fn it_should_return_the_file_if_client_has_old_version() {
 
     match st.call(&mut req) {
         Ok(res) => assert_eq!(res.status.unwrap().code(), 200),
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
 
@@ -77,7 +77,7 @@ fn it_should_return_304_if_client_has_file_cached() {
 
     match st.call(&mut req) {
         Ok(res) => assert_eq!(res.status.unwrap().code(), 304),
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
 
@@ -93,7 +93,7 @@ fn it_should_cache_index_html_for_directory_path() {
 
     match st.call(&mut req) {
         Ok(res) => assert_eq!(res.status.unwrap().code(), 304),
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
 
@@ -112,6 +112,6 @@ fn it_should_defer_to_static_handler_if_directory_misses_trailing_slash() {
             assert_eq!(res.status.unwrap().code(), 301);
             assert!(res.headers.last_modified.is_none());
         },
-        Err(e) => fail!("{}", e)
+        Err(e) => panic!("{}", e)
     }
 }
