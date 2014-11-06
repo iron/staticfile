@@ -1,4 +1,5 @@
-use iron::{Request, Response, Url, Handler, IronResult, IronError};
+use iron::{Request, Response, Url, Handler, IronResult, Set};
+use iron::response::modifiers::{Status, Body, Redirect};
 use iron::status;
 use mount::OriginalUrl;
 use requested_path::RequestedPath;
@@ -36,34 +37,34 @@ impl Handler for Static {
         let requested_path = RequestedPath::new(&self.root_path, req);
 
         // If the URL ends in a slash, serve the file directly.
-        // Otherwise, redirect to the directory equivalent of the URL, ala Apache.
+        // Otherwise, redirect to the directory equivalent of the URL.
         if requested_path.should_redirect(req) {
             // Perform an HTTP 301 Redirect.
-            let redirect_path = match req.extensions.find::<OriginalUrl, Url>() {
-                Some(original_url) => format!("{}/", original_url),
-                None => format!("{}/", req.url)
-            };
-            let mut res = Response::with(status::MovedPermanently,
-                            format!("Redirecting to {}", redirect_path));
-            res.headers.extensions.insert("Location".to_string(), redirect_path);
-            return Ok(res);
+            let mut redirect_path = match req.extensions.find::<OriginalUrl, Url>() {
+                Some(original_url) => original_url,
+                None => &req.url
+            }.clone();
+
+            // Append the trailing slash
+            //
+            // rust-url automatically turns an empty string in the last
+            // slot in the path into a trailing slash.
+            redirect_path.path.push("".into_string());
+
+            return Ok(Response::new().set(Status(status::MovedPermanently))
+                          .set(Body(format!("Redirecting to {}", redirect_path)))
+                          .set(Redirect(redirect_path)));
         }
 
         match requested_path.get_file() {
-            Some(file) =>
-                match Response::from_file(&file) {
-                    Ok(response) => {
-                        debug!("Serving static file at {}", file.display());
-                        return Ok(response);
-                    },
-                    Err(err) => {
-                        return Err(box err as IronError);
-                    }
-                },
-
+            Some(path) =>
+                Ok(Response::new()
+                       .set(Status(status::Ok))
+                       // Won't panic because we know the file exists from get_file
+                       .set(Body(path))),
             None =>
                 // If no file is found, return a 404 response.
-                return Ok(Response::with(status::NotFound, "File not found")),
+                Ok(Response::new().set(Status(status::NotFound)).set(Body("File not found")))
         }
     }
 }
