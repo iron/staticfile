@@ -59,10 +59,7 @@ fn redirects_if_trailing_slash_is_missing() {
     match st.call(&mut req) {
         Ok(res) => {
             assert_eq!(res.status.unwrap().code(), 301);
-            assert_eq!(
-                res.headers.extensions["Location".to_string()].as_slice(),
-                "http://localhost:3000/dir/"
-            );
+            assert_eq!(res.headers.location.unwrap().to_string(), "http://localhost:3000/dir/".into_string());
         },
         Err(e) => panic!("{}", e)
     }

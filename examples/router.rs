@@ -21,14 +21,15 @@ extern crate "static" as static_file;
 use std::io::net::ip::Ipv4Addr;
 
 use iron::status;
-use iron::{Iron, Request, Response, IronResult};
+use iron::{Iron, Request, Response, IronResult, Set};
+use iron::response::modifiers::{Status, Body};
 use mount::Mount;
 use router::Router;
 use static_file::Static;
 
 fn say_hello(req: &mut Request) -> IronResult<Response> {
     println!("Running send_hello handler, URL path: {}", req.url.path);
-    Ok(Response::with(status::Ok, "This request was routed!"))
+    Ok(Response::new().set(Status(status::Ok)).set(Body("This request was routed!")))
 }
 
 fn main() {
