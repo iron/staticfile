@@ -40,7 +40,7 @@ impl Handler for Static {
         // Otherwise, redirect to the directory equivalent of the URL.
         if requested_path.should_redirect(req) {
             // Perform an HTTP 301 Redirect.
-            let mut redirect_path = match req.extensions.find::<OriginalUrl, Url>() {
+            let mut redirect_path = match req.extensions.get::<OriginalUrl, Url>() {
                 Some(original_url) => original_url,
                 None => &req.url
             }.clone();
