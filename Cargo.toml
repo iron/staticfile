@@ -21,6 +21,11 @@ git = "https://github.com/iron/mount.git"
 
 git = "https://github.com/reem/iron-test"
 
+[dependencies.time]
+
+git = "https://github.com/rust-lang/time"
+
 [dev-dependencies.router]
 
 git = "https://github.com/iron/router.git"
+
