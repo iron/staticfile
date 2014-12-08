@@ -1,13 +1,11 @@
 [package]
 
 name = "static"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Zach Pomerantz <zmp@umich.edu>"]
-
-[lib]
-
-name = "static"
-path = "src/lib.rs"
+description = "Static file serving for Iron."
+repository = "https://github.com/iron/static"
+license = "MIT"
 
 [dependencies]
 iron = "*"
@@ -15,3 +13,4 @@ mount = "*"
 time = "*"
 router = "*"
 iron-test = "*"
+
