@@ -23,7 +23,7 @@ fn main() {
     // Serve the source code at /src/
     mount.mount("/src/", Static::new(Path::new("target/doc/src/static/src/lib.rs.html")));
 
-    Iron::new(mount).listen(Ipv4Addr(127, 0, 0, 1), 3000);
+    Iron::new(mount).listen((Ipv4Addr(127, 0, 0, 1), 3000));
 
     println!("Doc server running on http://localhost:3000/doc/");
 }
