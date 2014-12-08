@@ -1,10 +1,11 @@
-extern crate http;
+extern crate hyper;
 extern crate iron;
 extern crate "iron-test" as iron_test;
 extern crate "static" as static_file;
 
-use http::method::Get;
-use iron::{Error, Url, Handler};
+use hyper::header::Location;
+use iron::method::Method::Get;
+use iron::{Url, Handler};
 use iron_test::{mock, ProjectBuilder};
 use static_file::Static;
 
@@ -41,7 +42,7 @@ fn returns_404_if_file_not_found() {
 
     match st.call(&mut req) {
         Ok(res) => {
-            assert_eq!(res.status.unwrap().code(), 404);
+            assert_eq!(res.status.and_then(|t| t.to_u32()).unwrap(), 404);
         },
         Err(e) => panic!("{}", e)
     }
@@ -58,8 +59,9 @@ fn redirects_if_trailing_slash_is_missing() {
 
     match st.call(&mut req) {
         Ok(res) => {
-            assert_eq!(res.status.unwrap().code(), 301);
-            assert_eq!(res.headers.location.unwrap().to_string(), "http://localhost:3000/dir/".into_string());
+            assert_eq!(res.status.and_then(|t| t.to_u32()).unwrap(), 301);
+            assert_eq!(res.headers.get::<Location>().unwrap(),
+                       &Location("http://localhost:3000/dir/".into_string()));
         },
         Err(e) => panic!("{}", e)
     }

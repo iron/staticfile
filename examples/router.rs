@@ -42,6 +42,6 @@ fn main() {
         .mount("/", router)
         .mount("/docs/", Static::new(Path::new("target/doc")));
 
-    Iron::new(mount).listen(Ipv4Addr(127, 0, 0, 1), 3000);
+    Iron::new(mount).listen((Ipv4Addr(127, 0, 0, 1), 3000));
 }
 

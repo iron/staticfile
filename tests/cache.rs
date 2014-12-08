@@ -1,6 +1,6 @@
 extern crate time;
 
-extern crate http;
+extern crate hyper;
 extern crate iron;
 extern crate "iron-test" as iron_test;
 extern crate "static" as static_file;
@@ -8,8 +8,9 @@ extern crate "static" as static_file;
 
 use time::Timespec;
 
-use http::method::Get;
 use iron::{Handler, Url};
+use iron::method::Method::Get;
+use hyper::header::{IfModifiedSince, CacheControl, LastModified};
 use iron_test::{mock, ProjectBuilder};
 use static_file::StaticWithCache;
 
@@ -24,8 +25,8 @@ fn it_should_return_cache_headers() {
     let mut req = mock::request::at(Get, Url::parse("http://localhost:3000/file1.html").unwrap());
     match st.call(&mut req) {
         Ok(res) => {
-            assert!(res.headers.cache_control.is_some());
-            assert!(res.headers.last_modified.is_some());
+            assert!(res.headers.get::<CacheControl>().is_some());
+            assert!(res.headers.get::<LastModified>().is_some());
         },
         Err(e) => panic!("{}", e)
     }
@@ -41,7 +42,7 @@ fn it_should_return_the_file_if_client_sends_no_modified_time() {
     let mut req = mock::request::at(Get, Url::parse("http://localhost:3000/file1.html").unwrap());
 
     match st.call(&mut req) {
-        Ok(res) => assert_eq!(res.status.unwrap().code(), 200),
+        Ok(res) => assert_eq!(res.status.and_then(|t| t.to_u32()).unwrap(), 200),
         Err(e) => panic!("{}", e)
     }
 }
@@ -57,10 +58,10 @@ fn it_should_return_the_file_if_client_has_old_version() {
 
     let now = time::get_time();
     let one_hour_ago = Timespec::new(now.sec - 3600, now.nsec);
-    req.headers.if_modified_since = Some(time::at(one_hour_ago));
+    req.headers.set(IfModifiedSince(time::at(one_hour_ago)));
 
     match st.call(&mut req) {
-        Ok(res) => assert_eq!(res.status.unwrap().code(), 200),
+        Ok(res) => assert_eq!(res.status.and_then(|t| t.to_u32()).unwrap(), 200),
         Err(e) => panic!("{}", e)
     }
 }
@@ -73,10 +74,10 @@ fn it_should_return_304_if_client_has_file_cached() {
     let st = StaticWithCache::new(p.root());
 
     let mut req = mock::request::at(Get, Url::parse("http://localhost:3000/file1.html").unwrap());
-    req.headers.if_modified_since = Some(time::now_utc());
+    req.headers.set(IfModifiedSince(time::now_utc()));
 
     match st.call(&mut req) {
-        Ok(res) => assert_eq!(res.status.unwrap().code(), 304),
+        Ok(res) => assert_eq!(res.status.and_then(|t| t.to_u32()).unwrap(), 304),
         Err(e) => panic!("{}", e)
     }
 }
@@ -89,10 +90,10 @@ fn it_should_cache_index_html_for_directory_path() {
     let st = StaticWithCache::new(p.root());
 
     let mut req = mock::request::at(Get, Url::parse("http://localhost:3000/dir/").unwrap());
-    req.headers.if_modified_since = Some(time::now_utc());
+    req.headers.set(IfModifiedSince(time::now_utc()));
 
     match st.call(&mut req) {
-        Ok(res) => assert_eq!(res.status.unwrap().code(), 304),
+        Ok(res) => assert_eq!(res.status.and_then(|t| t.to_u32()).unwrap(), 304),
         Err(e) => panic!("{}", e)
     }
 }
@@ -105,12 +106,12 @@ fn it_should_defer_to_static_handler_if_directory_misses_trailing_slash() {
     let st = StaticWithCache::new(p.root());
 
     let mut req = mock::request::at(Get, Url::parse("http://localhost:3000/dir").unwrap());
-    req.headers.if_modified_since = Some(time::now_utc());
+    req.headers.set(IfModifiedSince(time::now_utc()));
 
     match st.call(&mut req) {
         Ok(res) => {
-            assert_eq!(res.status.unwrap().code(), 301);
-            assert!(res.headers.last_modified.is_none());
+            assert_eq!(res.status.and_then(|t| t.to_u32()).unwrap(), 301);
+            assert!(res.headers.get::<LastModified>().is_none());
         },
         Err(e) => panic!("{}", e)
     }

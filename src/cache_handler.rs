@@ -66,7 +66,7 @@ impl Handler for StaticWithCache {
                 };
 
                 let if_modified_since = match request.headers.get::<IfModifiedSince>()
-                                                             .map(|x| x.clone()) {
+                                                             .cloned() {
                     None => return self.defer_and_cache(request, last_modified_time),
                     Some(tm) => tm.to_timespec(),
                 };
