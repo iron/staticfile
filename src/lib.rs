@@ -10,7 +10,7 @@ extern crate regex_macros;
 extern crate regex;
 extern crate time;
 
-extern crate http;
+extern crate hyper;
 extern crate iron;
 #[phase(plugin, link)]
 extern crate log;

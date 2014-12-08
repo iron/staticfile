@@ -1,7 +1,7 @@
 use std::io::fs::PathExtensions;
 use time::{mod, Timespec};
 
-use iron::{status, Handler, IronResult, IronError, Request, Response, Set};
+use iron::{status, Handler, IronResult, IronError, Request, Response};
 use iron::response::modifiers::Status;
 use iron::errors::FileError;
 
@@ -29,15 +29,15 @@ impl StaticWithCache {
     // Defers to the static handler, but adds cache headers to the response.
     fn defer_and_cache(&self, request: &mut Request,
                        modified: Timespec) -> IronResult<Response> {
+        use hyper::header::{CacheControl, LastModified};
+        use hyper::header::common::cache_control::CacheDirective::{Public, MaxAge};
+
         match self.static_handler.call(request) {
             Err(error) => Err(error),
 
             Ok(mut response) => {
-                response.headers.cache_control =
-                    Some("public, max-age=31536000".to_string());
-                response.headers.last_modified =
-                    Some(time::at(modified));
-
+                response.headers.set(CacheControl(vec![Public, MaxAge(31536000)]));
+                response.headers.set(LastModified(time::at(modified)));
                 Ok(response)
             },
         }
@@ -46,6 +46,9 @@ impl StaticWithCache {
 
 impl Handler for StaticWithCache {
     fn call(&self, request: &mut Request) -> IronResult<Response> {
+        use iron::Set;
+        use hyper::header::IfModifiedSince;
+
         let requested_path = RequestedPath::new(&self.static_handler.root_path, request);
 
         if requested_path.should_redirect(request) {
@@ -62,7 +65,8 @@ impl Handler for StaticWithCache {
                     }
                 };
 
-                let if_modified_since = match request.headers.if_modified_since {
+                let if_modified_since = match request.headers.get::<IfModifiedSince>()
+                                                             .map(|x| x.clone()) {
                     None => return self.defer_and_cache(request, last_modified_time),
                     Some(tm) => tm.to_timespec(),
                 };

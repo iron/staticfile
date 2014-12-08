@@ -9,23 +9,9 @@ authors = ["Zach Pomerantz <zmp@umich.edu>"]
 name = "static"
 path = "src/lib.rs"
 
-[dependencies.iron]
-
-git = "https://github.com/iron/iron.git"
-
-[dependencies.mount]
-
-git = "https://github.com/iron/mount.git"
-
-[dependencies.iron-test]
-
-git = "https://github.com/reem/iron-test"
-
-[dependencies.time]
-
-git = "https://github.com/rust-lang/time"
-
-[dev-dependencies.router]
-
-git = "https://github.com/iron/router.git"
-
+[dependencies]
+iron = "*"
+mount = "*"
+time = "*"
+router = "*"
+iron-test = "*"
