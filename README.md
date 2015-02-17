@@ -15,9 +15,9 @@ mount.mount("/", Static::new(Path::new("target/doc/")));
 // Serve the static file docs at /doc/
 mount.mount("/doc/", Static::new(Path::new("target/doc/static/")));
 // Serve the source code at /src/
-mount.mount("/src/", Static::new(Path::new("target/doc/src/static/src/lib.rs.html")));
+mount.mount("/src/", Static::new(Path::new("target/doc/src/static/lib.rs.html")));
 
-Iron::new(mount).listen(Ipv4Addr(127, 0, 0, 1), 3000);
+Iron::new(mount).listen(Ipv4Addr(127, 0, 0, 1), 3000).unwrap();
 ```
 
 Note that `static` is a reserved keyword, so the crate will need to be imported as `extern crate "static" as static_file;`.

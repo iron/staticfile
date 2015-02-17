@@ -1,6 +1,13 @@
-use iron::{Request, Response, Url, Handler, IronResult, Set};
-use iron::response::modifiers::{Status, Body, Redirect};
-use iron::status;
+use std::old_io::fs::PathExtensions;
+use std::time::Duration;
+use std::error::Error;
+use std::fmt;
+use time::{self, Timespec};
+
+use iron::prelude::*;
+use iron::{Handler, status};
+use iron::modifier::Modifier;
+use iron::modifiers::Redirect;
 use mount::OriginalUrl;
 use requested_path::RequestedPath;
 
@@ -17,54 +24,137 @@ use requested_path::RequestedPath;
 /// If the path doesn't match any real object in the filesystem, the handler will return
 /// a Response with `status::NotFound`. If an IO error occurs whilst attempting to serve
 /// a file, `FileError(IoError)` will be returned.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Static {
     /// The path this handler is serving files from.
-    pub root_path: Path
+    pub root: Path,
+    cache: Option<Cache>,
 }
 
 impl Static {
     /// Create a new instance of `Static` with a given root path.
     ///
     /// If `Path::new("")` is given, files will be served from the current directory.
-    pub fn new(root_path: Path) -> Static {
-        Static { root_path: root_path }
+    pub fn new(root: Path) -> Static {
+        Static { root: root, cache: None }
+    }
+
+    /// Specify the response's `cache-control` header with a given duration. Internally, this is
+    /// a helper function to set a `Cache` on an instance of `Static`.
+    ///
+    /// ## Example
+    ///
+    /// ```ignore
+    /// let cached_static_handler = Static::new(path).cache(Duration::days(30));
+    /// ```
+    pub fn cache(self, duration: Duration) -> Static {
+        self.set(Cache::new(duration))
+    }
+
+    fn try_cache(&self, req: &mut Request, path: Path) -> IronResult<Response> {
+        match self.cache {
+            None => Ok(Response::with((status::Ok, path))),
+            Some(ref cache) => cache.handle(req, path),
+        }
     }
 }
 
 impl Handler for Static {
-    fn call(&self, req: &mut Request) -> IronResult<Response> {
-        let requested_path = RequestedPath::new(&self.root_path, req);
+    fn handle(&self, req: &mut Request) -> IronResult<Response> {
+        let requested_path = RequestedPath::new(&self.root, req);
 
         // If the URL ends in a slash, serve the file directly.
         // Otherwise, redirect to the directory equivalent of the URL.
         if requested_path.should_redirect(req) {
             // Perform an HTTP 301 Redirect.
-            let mut redirect_path = match req.extensions.get::<OriginalUrl, Url>() {
+            let mut redirect_path = match req.extensions.get::<OriginalUrl>() {
+                None => &req.url,
                 Some(original_url) => original_url,
-                None => &req.url
             }.clone();
 
             // Append the trailing slash
             //
             // rust-url automatically turns an empty string in the last
             // slot in the path into a trailing slash.
-            redirect_path.path.push("".into_string());
+            redirect_path.path.push("".to_string());
 
-            return Ok(Response::new().set(Status(status::MovedPermanently))
-                          .set(Body(format!("Redirecting to {}", redirect_path)))
-                          .set(Redirect(redirect_path)));
+            return Ok(Response::with((status::MovedPermanently,
+                                      format!("Redirecting to {}", redirect_path),
+                                      Redirect(redirect_path))));
         }
 
         match requested_path.get_file() {
-            Some(path) =>
-                Ok(Response::new()
-                       .set(Status(status::Ok))
-                       // Won't panic because we know the file exists from get_file
-                       .set(Body(path))),
-            None =>
-                // If no file is found, return a 404 response.
-                Ok(Response::new().set(Status(status::NotFound)).set(Body("File not found")))
+            // If no file is found, return a 404 response.
+            None => Err(IronError::new(NoFile, status::NotFound)),
+            // Won't panic because we know the file exists from get_file.
+            Some(path) => self.try_cache(req, path),
         }
+    }
+}
+
+impl Set for Static {}
+
+/// A modifier for `Static` to specify a response's `cache-control`.
+#[derive(Clone)]
+pub struct Cache {
+    /// The length of time the file should be cached for.
+    pub duration: Duration,
+}
+
+impl Cache {
+    /// Create a new instance of `Cache` with a given duration.
+    pub fn new(duration: Duration) -> Cache {
+        Cache { duration: duration }
+    }
+
+    fn handle(&self, req: &mut Request, path: Path) -> IronResult<Response> {
+        use hyper::header::IfModifiedSince;
+
+        let last_modified_time = match path.stat() {
+            Err(error) => return Err(IronError::new(error, status::InternalServerError)),
+            Ok(file_stat) => Timespec::new((file_stat.modified / 1000) as i64, 0),
+        };
+
+        let if_modified_since = match req.headers.get::<IfModifiedSince>().cloned() {
+            None => return Ok(self.response_with_cache(path, last_modified_time)),
+            Some(time) => time.to_timespec(),
+        };
+
+        if last_modified_time <= if_modified_since {
+            Ok(Response::with(status::NotModified))
+        } else {
+            Ok(self.response_with_cache(path, last_modified_time))
+        }
+    }
+
+    fn response_with_cache(&self, path: Path, modified: Timespec) -> Response {
+        use hyper::header::{CacheControl, LastModified, CacheDirective};
+
+        let mut response = Response::with((status::Ok, path.clone()));
+        let seconds = self.duration.num_seconds() as u32;
+        let cache = vec![CacheDirective::Public, CacheDirective::MaxAge(seconds)];
+        response.headers.set(CacheControl(cache));
+        response.headers.set(LastModified(time::at(modified)));
+        response
+    }
+}
+
+impl Modifier<Static> for Cache {
+    fn modify(self, static_handler: &mut Static) {
+        static_handler.cache = Some(self);
+    }
+}
+
+/// Thrown if no file is found. It is always accompanied by a NotFound response.
+#[derive(Debug)]
+pub struct NoFile;
+
+impl Error for NoFile {
+    fn description(&self) -> &str { "File not found" }
+}
+
+impl fmt::Display for NoFile {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(self.description())
     }
 }

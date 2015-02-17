@@ -13,4 +13,5 @@ mount = "*"
 time = "*"
 router = "*"
 iron-test = "*"
-
+hyper = "*"
+log = "*"
