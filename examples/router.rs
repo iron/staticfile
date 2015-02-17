@@ -13,23 +13,24 @@
 //!
 //! Visit http://127.0.0.1:3000/docs/mount/ to view the mounted docs.
 
+#![feature(io, path)]
+
 extern crate iron;
 extern crate mount;
 extern crate router;
 extern crate "static" as static_file;
 
-use std::io::net::ip::Ipv4Addr;
+use std::old_io::net::ip::Ipv4Addr;
 
 use iron::status;
-use iron::{Iron, Request, Response, IronResult, Set};
-use iron::response::modifiers::{Status, Body};
+use iron::{Iron, Request, Response, IronResult};
 use mount::Mount;
 use router::Router;
 use static_file::Static;
 
 fn say_hello(req: &mut Request) -> IronResult<Response> {
-    println!("Running send_hello handler, URL path: {}", req.url.path);
-    Ok(Response::new().set(Status(status::Ok)).set(Body("This request was routed!")))
+    println!("Running send_hello handler, URL path: {}", req.url.path.connect("/"));
+    Ok(Response::with((status::Ok, "This request was routed!")))
 }
 
 fn main() {
@@ -42,6 +43,6 @@ fn main() {
         .mount("/", router)
         .mount("/docs/", Static::new(Path::new("target/doc")));
 
-    Iron::new(mount).listen((Ipv4Addr(127, 0, 0, 1), 3000));
+    Iron::new(mount).listen((Ipv4Addr(127, 0, 0, 1), 3000)).unwrap();
 }
 
