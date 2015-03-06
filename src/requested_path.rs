@@ -1,15 +1,16 @@
-use std::old_io::fs::PathExtensions;
 use iron::Request;
+use std::path::{PathBuf, AsPath};
+use std::fs::PathExt;
 
 pub struct RequestedPath {
-    pub path: Path,
+    pub path: PathBuf,
 }
 
 impl RequestedPath {
-    pub fn new(root_path: &Path, request: &Request) -> RequestedPath {
-        let path = root_path.join(
-            Path::new("").join_many(request.url.path.as_slice())
-        );
+    pub fn new<P: AsPath>(root_path: P, request: &Request) -> RequestedPath {
+        let mut path = root_path.as_path().to_path_buf();
+
+        path.extend(&request.url.path);
 
         RequestedPath { path: path }
     }
@@ -34,7 +35,7 @@ impl RequestedPath {
         self.path.is_dir() && !has_trailing_slash
     }
 
-    pub fn get_file(self) -> Option<Path> {
+    pub fn get_file(self) -> Option<PathBuf> {
         if self.path.is_file() {
             return Some(self.path);
         }

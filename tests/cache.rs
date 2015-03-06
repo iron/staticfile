@@ -15,7 +15,7 @@ use iron::status::Status;
 use hyper::header::{IfModifiedSince, CacheControl, CacheDirective, LastModified};
 use iron_test::{mock, ProjectBuilder};
 use static_file::Static;
-use std::old_io::util::NullReader;
+use std::io;
 use std::time::Duration;
 
 #[test]
@@ -24,7 +24,7 @@ fn it_should_return_cache_headers() {
     p.build();
 
     let st = Static::new(p.root().clone()).cache(Duration::days(30));
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/file1.html").unwrap(),
                                      &mut reader);
@@ -46,7 +46,7 @@ fn it_should_return_the_file_if_client_sends_no_modified_time() {
     p.build();
 
     let st = Static::new(p.root().clone()).cache(Duration::days(30));
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/file1.html").unwrap(),
                                      &mut reader);
@@ -62,7 +62,7 @@ fn it_should_return_the_file_if_client_has_old_version() {
     p.build();
 
     let st = Static::new(p.root().clone()).cache(Duration::days(30));
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/file1.html").unwrap(),
                                      &mut reader);
@@ -82,7 +82,7 @@ fn it_should_return_304_if_client_has_file_cached() {
     p.build();
 
     let st = Static::new(p.root().clone()).cache(Duration::days(30));
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/file1.html").unwrap(),
                                      &mut reader);
@@ -99,7 +99,7 @@ fn it_should_cache_index_html_for_directory_path() {
     p.build();
 
     let st = Static::new(p.root().clone()).cache(Duration::days(30));
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/dir/").unwrap(),
                                      &mut reader);
@@ -116,7 +116,7 @@ fn it_should_defer_to_static_handler_if_directory_misses_trailing_slash() {
     p.build();
 
     let st = Static::new(p.root().clone()).cache(Duration::days(30));
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/dir").unwrap(),
                                      &mut reader);

@@ -1,4 +1,5 @@
-use std::old_io::fs::PathExtensions;
+use std::path::{PathBuf, AsPath};
+use std::fs::PathExt;
 use std::time::Duration;
 use std::error::Error;
 use std::fmt;
@@ -27,7 +28,7 @@ use requested_path::RequestedPath;
 #[derive(Clone)]
 pub struct Static {
     /// The path this handler is serving files from.
-    pub root: Path,
+    pub root: PathBuf,
     cache: Option<Cache>,
 }
 
@@ -35,8 +36,8 @@ impl Static {
     /// Create a new instance of `Static` with a given root path.
     ///
     /// If `Path::new("")` is given, files will be served from the current directory.
-    pub fn new(root: Path) -> Static {
-        Static { root: root, cache: None }
+    pub fn new<P: AsPath>(root: P) -> Static {
+        Static { root: root.as_path().to_path_buf(), cache: None }
     }
 
     /// Specify the response's `cache-control` header with a given duration. Internally, this is
@@ -51,10 +52,10 @@ impl Static {
         self.set(Cache::new(duration))
     }
 
-    fn try_cache(&self, req: &mut Request, path: Path) -> IronResult<Response> {
+    fn try_cache<P: AsPath>(&self, req: &mut Request, path: P) -> IronResult<Response> {
         match self.cache {
-            None => Ok(Response::with((status::Ok, path))),
-            Some(ref cache) => cache.handle(req, path),
+            None => Ok(Response::with((status::Ok, path.as_path()))),
+            Some(ref cache) => cache.handle(req, path.as_path()),
         }
     }
 }
@@ -107,12 +108,13 @@ impl Cache {
         Cache { duration: duration }
     }
 
-    fn handle(&self, req: &mut Request, path: Path) -> IronResult<Response> {
+    fn handle<P: AsPath>(&self, req: &mut Request, path: P) -> IronResult<Response> {
         use hyper::header::IfModifiedSince;
+        let path = path.as_path();
 
-        let last_modified_time = match path.stat() {
+        let last_modified_time = match path.metadata() {
             Err(error) => return Err(IronError::new(error, status::InternalServerError)),
-            Ok(file_stat) => Timespec::new((file_stat.modified / 1000) as i64, 0),
+            Ok(metadata) => Timespec::new((metadata.modified() / 1000) as i64, 0),
         };
 
         let if_modified_since = match req.headers.get::<IfModifiedSince>().cloned() {
@@ -127,10 +129,10 @@ impl Cache {
         }
     }
 
-    fn response_with_cache(&self, path: Path, modified: Timespec) -> Response {
+    fn response_with_cache<P: AsPath>(&self, path: P, modified: Timespec) -> Response {
         use hyper::header::{CacheControl, LastModified, CacheDirective};
 
-        let mut response = Response::with((status::Ok, path.clone()));
+        let mut response = Response::with((status::Ok, path.as_path()));
         let seconds = self.duration.num_seconds() as u32;
         let cache = vec![CacheDirective::Public, CacheDirective::MaxAge(seconds)];
         response.headers.set(CacheControl(cache));
