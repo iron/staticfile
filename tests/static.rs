@@ -11,20 +11,23 @@ use iron::{Url, Handler};
 use iron::status::Status;
 use iron_test::{mock, ProjectBuilder};
 use static_file::Static;
-use std::old_io::util::NullReader;
+use std::io;
 
 #[test]
 fn serves_non_default_file_from_absolute_root_path() {
     let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/file1.html").unwrap(),
                                      &mut reader);
     match st.handle(&mut req) {
-        Ok(res) =>
-            assert_eq!(res.body.unwrap().read_to_string().unwrap(), "this is file1".to_string()),
+        Ok(res) => {
+            let mut str = String::new();
+            res.body.unwrap().read_to_string(&mut str).unwrap();
+            assert_eq!(str, "this is file1".to_string())
+        },
         Err(e) => panic!("{}", e)
     }
 }
@@ -34,13 +37,16 @@ fn serves_default_file_from_absolute_root_path() {
     let p = ProjectBuilder::new("example").file("index.html", "this is index");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000").unwrap(),
                                      &mut reader);
     match st.handle(&mut req) {
-        Ok(res) =>
-            assert_eq!(res.body.unwrap().read_to_string().unwrap(), "this is index".to_string()),
+        Ok(res) => {
+            let mut str = String::new();
+            res.body.unwrap().read_to_string(&mut str).unwrap();
+            assert_eq!(str, "this is index".to_string())
+        },
         Err(e) => panic!("{}", e)
     }
 }
@@ -50,7 +56,7 @@ fn returns_404_if_file_not_found() {
     let p = ProjectBuilder::new("example");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000").unwrap(),
                                      &mut reader);
@@ -67,7 +73,7 @@ fn redirects_if_trailing_slash_is_missing() {
     p.build();
 
     let st = Static::new(p.root().clone());
-    let mut reader = NullReader;
+    let mut reader = io::empty();
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/dir").unwrap(),
                                      &mut reader);

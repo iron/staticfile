@@ -1,7 +1,7 @@
 #![crate_name = "static"]
 #![deny(missing_docs)]
 #![deny(warnings)]
-#![feature(core, io, path, std_misc)]
+#![feature(core, path, std_misc, path_ext, fs_time)]
 
 //! Static file-serving handler.
 

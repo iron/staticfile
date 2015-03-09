@@ -1,4 +1,4 @@
-#![feature(io, path)]
+#![feature(path)]
 
 extern crate iron;
 extern crate "static" as static_file;
@@ -9,7 +9,7 @@ extern crate mount;
 // Run `cargo doc && cargo test && ./target/doc_server`, then
 // point your browser to http://127.0.0.1:3000/doc/
 
-use std::old_io::net::ip::Ipv4Addr;
+use std::path::Path;
 
 use iron::Iron;
 use static_file::Static;
@@ -27,5 +27,5 @@ fn main() {
 
     println!("Doc server running on http://localhost:3000/doc/");
 
-    Iron::new(mount).listen((Ipv4Addr(127, 0, 0, 1), 3000)).unwrap();
+    Iron::new(mount).http("127.0.0.1:3000").unwrap();
 }
