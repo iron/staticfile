@@ -109,7 +109,7 @@ impl Cache {
     }
 
     fn handle<P: AsPath>(&self, req: &mut Request, path: P) -> IronResult<Response> {
-        use hyper::header::IfModifiedSince;
+        use iron::headers::IfModifiedSince;
         let path = path.as_path();
 
         let last_modified_time = match path.metadata() {
@@ -130,7 +130,7 @@ impl Cache {
     }
 
     fn response_with_cache<P: AsPath>(&self, path: P, modified: Timespec) -> Response {
-        use hyper::header::{CacheControl, LastModified, CacheDirective};
+        use iron::headers::{CacheControl, LastModified, CacheDirective};
 
         let mut response = Response::with((status::Ok, path.as_path()));
         let seconds = self.duration.num_seconds() as u32;

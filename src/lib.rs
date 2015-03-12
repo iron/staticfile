@@ -7,7 +7,6 @@
 
 extern crate time;
 
-extern crate hyper;
 extern crate iron;
 #[macro_use]
 extern crate log;
