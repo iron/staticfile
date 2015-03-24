@@ -12,6 +12,8 @@ iron = "*"
 mount = "*"
 time = "*"
 router = "*"
-iron-test = "*"
 log = "*"
+
+[dev-dependencies]
+iron-test = "*"
 
