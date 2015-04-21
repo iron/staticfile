@@ -13,8 +13,6 @@
 //!
 //! Visit http://127.0.0.1:3000/docs/mount/ to view the mounted docs.
 
-#![feature(path)]
-
 extern crate iron;
 extern crate mount;
 extern crate router;
@@ -44,4 +42,3 @@ fn main() {
 
     Iron::new(mount).http("127.0.0.1:3000").unwrap();
 }
-

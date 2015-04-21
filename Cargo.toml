@@ -16,4 +16,4 @@ log = "*"
 
 [dev-dependencies]
 iron-test = "*"
-
+hyper = "*"

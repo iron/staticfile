@@ -1,5 +1,3 @@
-#![feature(path)]
-
 extern crate iron;
 extern crate staticfile;
 extern crate mount;
