@@ -1,24 +1,26 @@
-#![feature(io)]
-
 extern crate hyper;
 extern crate iron;
-extern crate "iron-test" as iron_test;
-extern crate "static" as static_file;
+extern crate iron_test;
+extern crate staticfile;
 
 use hyper::header::Location;
+use hyper::net::NetworkStream;
+use hyper::buffer::BufReader;
 use iron::method::Method::Get;
 use iron::{Url, Handler};
 use iron::status::Status;
 use iron_test::{mock, ProjectBuilder};
-use static_file::Static;
-use std::io;
+use iron_test::mock::MockStream;
+use staticfile::Static;
+use std::io::Cursor;
 
 #[test]
 fn serves_non_default_file_from_absolute_root_path() {
     let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut reader = io::empty();
+    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
+    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/file1.html").unwrap(),
                                      &mut reader);
@@ -37,7 +39,8 @@ fn serves_default_file_from_absolute_root_path() {
     let p = ProjectBuilder::new("example").file("index.html", "this is index");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut reader = io::empty();
+    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
+    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000").unwrap(),
                                      &mut reader);
@@ -56,7 +59,8 @@ fn returns_404_if_file_not_found() {
     let p = ProjectBuilder::new("example");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut reader = io::empty();
+    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
+    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000").unwrap(),
                                      &mut reader);
@@ -73,7 +77,8 @@ fn redirects_if_trailing_slash_is_missing() {
     p.build();
 
     let st = Static::new(p.root().clone());
-    let mut reader = io::empty();
+    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
+    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
     let mut req = mock::request::new(Get,
                                      Url::parse("http://localhost:3000/dir").unwrap(),
                                      &mut reader);

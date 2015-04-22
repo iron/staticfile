@@ -13,18 +13,16 @@
 //!
 //! Visit http://127.0.0.1:3000/docs/mount/ to view the mounted docs.
 
-#![feature(path)]
-
 extern crate iron;
 extern crate mount;
 extern crate router;
-extern crate "static" as static_file;
+extern crate staticfile;
 
 use iron::status;
 use iron::{Iron, Request, Response, IronResult};
 use mount::Mount;
 use router::Router;
-use static_file::Static;
+use staticfile::Static;
 use std::path::Path;
 
 fn say_hello(req: &mut Request) -> IronResult<Response> {
@@ -44,4 +42,3 @@ fn main() {
 
     Iron::new(mount).http("127.0.0.1:3000").unwrap();
 }
-
