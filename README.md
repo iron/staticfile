@@ -24,20 +24,16 @@ See [`examples/doc_server.rs`](examples/doc_server.rs) for a complete example th
 
 ## Overview
 
-staticfile is a part of Iron's [core bundle](https://github.com/iron/core).
-
 - Serve static files from a given path.
 
 It works well in combination with the [mounting handler][mounting-handler].
 
 ## Installation
 
-If you're using a `Cargo.toml` to manage dependencies, just add the `staticfile` package to the toml:
+If you're using a `Cargo.toml` to manage dependencies, just add the `staticfile` package to the `[dependencies]` section of the toml:
 
 ```toml
-[dependencies.staticfile]
-
-git = "https://github.com/iron/staticfile.git"
+staticfile = "*"
 ```
 
 Otherwise, `cargo build`, and the rlib will be in your `target` directory.
