@@ -13,6 +13,7 @@ mount = "*"
 time = "*"
 router = "*"
 log = "*"
+filetime = "*"
 
 [dev-dependencies]
 iron-test = "*"
