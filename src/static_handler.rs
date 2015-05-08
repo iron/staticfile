@@ -4,6 +4,7 @@ use std::time::Duration;
 use std::error::Error;
 use std::fmt;
 use time::{self, Timespec};
+use filetime::FileTime;
 
 use iron::prelude::*;
 use iron::{Handler, status};
@@ -114,7 +115,10 @@ impl Cache {
 
         let last_modified_time = match path.metadata() {
             Err(error) => return Err(IronError::new(error, status::InternalServerError)),
-            Ok(metadata) => Timespec::new((metadata.modified() / 1000) as i64, 0),
+            Ok(metadata) => {
+                let time = FileTime::from_last_modification_time(&metadata);
+                Timespec::new(time.seconds() as i64, time.nanoseconds() as i32)
+            },
         };
 
         let if_modified_since = match req.headers.get::<IfModifiedSince>().cloned() {
