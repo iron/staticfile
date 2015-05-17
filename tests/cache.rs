@@ -1,4 +1,4 @@
-#![feature(duration)]
+#![cfg_attr(feature = "cache", feature(duration))]
 
 extern crate time;
 
@@ -7,7 +7,7 @@ extern crate iron;
 extern crate iron_test;
 extern crate staticfile;
 
-use time::Timespec;
+use time::{Duration, Timespec};
 
 use iron::{Handler, Url};
 use iron::method::Method::Get;
@@ -20,7 +20,6 @@ use iron_test::{mock, ProjectBuilder};
 use iron_test::mock::MockStream;
 use staticfile::Static;
 use std::io::Cursor;
-use std::time::Duration;
 
 #[test]
 fn it_should_return_cache_headers() {
