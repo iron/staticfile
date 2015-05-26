@@ -47,7 +47,7 @@ impl Static {
     /// ## Example
     ///
     /// ```ignore
-    /// let cached_static_handler = Static::new(path).cache(Duration::days(30));
+    /// let cached_static_handler = Static::new(path).cache(Duration::from_secs(30*24*60*60));
     /// ```
     pub fn cache(self, duration: Duration) -> Static {
         self.set(Cache::new(duration))
@@ -137,7 +137,7 @@ impl Cache {
         use iron::headers::{CacheControl, LastModified, CacheDirective, HttpDate};
 
         let mut response = Response::with((status::Ok, path.as_ref()));
-        let seconds = self.duration.num_seconds() as u32;
+        let seconds = self.duration.secs() as u32;
         let cache = vec![CacheDirective::Public, CacheDirective::MaxAge(seconds)];
         response.headers.set(CacheControl(cache));
         response.headers.set(LastModified(HttpDate(time::at(modified))));
