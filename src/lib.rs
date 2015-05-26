@@ -1,7 +1,7 @@
 #![crate_name = "staticfile"]
 #![deny(missing_docs)]
 #![deny(warnings)]
-#![cfg_attr(feature = "cache", feature(path_ext, duration))]
+#![cfg_attr(feature = "cache", feature(duration))]
 
 //! Static file-serving handler.
 

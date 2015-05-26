@@ -4,7 +4,9 @@ use std::error::Error;
 use std::fmt;
 
 #[cfg(feature = "cache")]
-use time::{self, Timespec, Duration};
+use time::{self, Timespec};
+#[cfg(feature = "cache")]
+use std::time::Duration;
 
 use iron::prelude::*;
 use iron::{Handler, status};
