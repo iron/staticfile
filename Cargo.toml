@@ -7,13 +7,19 @@ description = "Static file serving for Iron."
 repository = "https://github.com/iron/staticfile"
 license = "MIT"
 
+[features]
+cache = ["filetime"]
+
 [dependencies]
 iron = "*"
 mount = "*"
 time = "*"
 router = "*"
 log = "*"
-filetime = "*"
+
+[dependencies.filetime]
+version = "*"
+optional = true
 
 [dev-dependencies]
 iron-test = "*"

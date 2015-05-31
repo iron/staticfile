@@ -1,6 +1,6 @@
 use iron::Request;
 use std::path::{PathBuf, Path};
-use std::fs::PathExt;
+use std::fs::{self, Metadata};
 use std::convert::AsRef;
 
 pub struct RequestedPath {
@@ -16,7 +16,7 @@ impl RequestedPath {
         RequestedPath { path: path }
     }
 
-    pub fn should_redirect(&self, request: &Request) -> bool {
+    pub fn should_redirect(&self, metadata: &Metadata, request: &Request) -> bool {
         let last_url_element = request.url.path
             .last()
             .map(|s| s.as_ref());
@@ -32,20 +32,24 @@ impl RequestedPath {
             _ => false,
         };
 
-        self.path.is_dir() && !has_trailing_slash
+        metadata.is_dir() && !has_trailing_slash
     }
 
-    pub fn get_file(self) -> Option<PathBuf> {
-        if self.path.is_file() {
+    pub fn get_file(self, metadata: &Metadata) -> Option<PathBuf> {
+        if metadata.is_file() {
             return Some(self.path);
         }
 
         let index_path = self.path.join("index.html");
 
-        if index_path.is_file() {
-            Some(index_path)
-        } else {
-            None
+        match fs::metadata(&index_path) {
+            Ok(m) =>
+                if m.is_file() {
+                    Some(index_path)
+                } else {
+                    None
+                },
+            Err(_) => None,
         }
     }
 }

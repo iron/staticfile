@@ -1,4 +1,4 @@
-#![feature(duration)]
+#![cfg_attr(feature = "cache", feature(duration))]
 
 extern crate time;
 
@@ -7,7 +7,10 @@ extern crate iron;
 extern crate iron_test;
 extern crate staticfile;
 
-use time::Timespec;
+use time::{Timespec};
+
+#[cfg(feature = "cache")]
+use std::time::Duration;
 
 use iron::{Handler, Url};
 use iron::method::Method::Get;
@@ -20,8 +23,8 @@ use iron_test::{mock, ProjectBuilder};
 use iron_test::mock::MockStream;
 use staticfile::Static;
 use std::io::Cursor;
-use std::time::Duration;
 
+#[cfg(feature = "cache")]
 #[test]
 fn it_should_return_cache_headers() {
     let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
@@ -45,6 +48,7 @@ fn it_should_return_cache_headers() {
     }
 }
 
+#[cfg(feature = "cache")]
 #[test]
 fn it_should_return_the_file_if_client_sends_no_modified_time() {
     let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
@@ -62,6 +66,7 @@ fn it_should_return_the_file_if_client_sends_no_modified_time() {
     }
 }
 
+#[cfg(feature = "cache")]
 #[test]
 fn it_should_return_the_file_if_client_has_old_version() {
     let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
@@ -83,6 +88,7 @@ fn it_should_return_the_file_if_client_has_old_version() {
     }
 }
 
+#[cfg(feature = "cache")]
 #[test]
 fn it_should_return_304_if_client_has_file_cached() {
     let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
@@ -101,6 +107,7 @@ fn it_should_return_304_if_client_has_file_cached() {
     }
 }
 
+#[cfg(feature = "cache")]
 #[test]
 fn it_should_cache_index_html_for_directory_path() {
     let p = ProjectBuilder::new("example").file("dir/index.html", "this is index");
@@ -119,6 +126,7 @@ fn it_should_cache_index_html_for_directory_path() {
     }
 }
 
+#[cfg(feature = "cache")]
 #[test]
 fn it_should_defer_to_static_handler_if_directory_misses_trailing_slash() {
     let p = ProjectBuilder::new("example").file("dir/index.html", "this is index");

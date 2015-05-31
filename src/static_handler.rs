@@ -1,13 +1,16 @@
 use std::path::{PathBuf, Path};
-use std::fs::PathExt;
-use std::time::Duration;
+use std::fs;
 use std::error::Error;
 use std::fmt;
+
+#[cfg(feature = "cache")]
 use time::{self, Timespec};
-use filetime::FileTime;
+#[cfg(feature = "cache")]
+use std::time::Duration;
 
 use iron::prelude::*;
 use iron::{Handler, status};
+#[cfg(feature = "cache")]
 use iron::modifier::Modifier;
 use iron::modifiers::Redirect;
 use mount::OriginalUrl;
@@ -30,6 +33,7 @@ use requested_path::RequestedPath;
 pub struct Static {
     /// The path this handler is serving files from.
     pub root: PathBuf,
+    #[cfg(feature = "cache")]
     cache: Option<Cache>,
 }
 
@@ -37,8 +41,22 @@ impl Static {
     /// Create a new instance of `Static` with a given root path.
     ///
     /// If `Path::new("")` is given, files will be served from the current directory.
+    #[cfg(feature = "cache")]
     pub fn new<P: AsRef<Path>>(root: P) -> Static {
-        Static { root: root.as_ref().to_path_buf(), cache: None }
+        Static {
+            root: root.as_ref().to_path_buf(),
+            cache: None
+        }
+    }
+
+    /// Create a new instance of `Static` with a given root path.
+    ///
+    /// If `Path::new("")` is given, files will be served from the current directory.
+    #[cfg(not(feature = "cache"))]
+    pub fn new<P: AsRef<Path>>(root: P) -> Static {
+        Static {
+            root: root.as_ref().to_path_buf(),
+        }
     }
 
     /// Specify the response's `cache-control` header with a given duration. Internally, this is
@@ -49,10 +67,12 @@ impl Static {
     /// ```ignore
     /// let cached_static_handler = Static::new(path).cache(Duration::from_secs(30*24*60*60));
     /// ```
+    #[cfg(feature = "cache")]
     pub fn cache(self, duration: Duration) -> Static {
         self.set(Cache::new(duration))
     }
 
+    #[cfg(feature = "cache")]
     fn try_cache<P: AsRef<Path>>(&self, req: &mut Request, path: P) -> IronResult<Response> {
         match self.cache {
             None => Ok(Response::with((status::Ok, path.as_ref()))),
@@ -63,11 +83,26 @@ impl Static {
 
 impl Handler for Static {
     fn handle(&self, req: &mut Request) -> IronResult<Response> {
+        use std::io;
+
         let requested_path = RequestedPath::new(&self.root, req);
+
+        let metadata = match fs::metadata(&requested_path.path) {
+            Ok(meta) => meta,
+            Err(e) => {
+                let status = match e.kind() {
+                    io::ErrorKind::NotFound => status::NotFound,
+                    io::ErrorKind::PermissionDenied => status::Forbidden,
+                    _ => status::InternalServerError,
+                };
+
+                return Err(IronError::new(e, status))
+            },
+        };
 
         // If the URL ends in a slash, serve the file directly.
         // Otherwise, redirect to the directory equivalent of the URL.
-        if requested_path.should_redirect(req) {
+        if requested_path.should_redirect(&metadata, req) {
             // Perform an HTTP 301 Redirect.
             let mut redirect_path = match req.extensions.get::<OriginalUrl>() {
                 None => &req.url,
@@ -85,11 +120,17 @@ impl Handler for Static {
                                       Redirect(redirect_path))));
         }
 
-        match requested_path.get_file() {
+        match requested_path.get_file(&metadata) {
             // If no file is found, return a 404 response.
             None => Err(IronError::new(NoFile, status::NotFound)),
             // Won't panic because we know the file exists from get_file.
+            #[cfg(feature = "cache")]
             Some(path) => self.try_cache(req, path),
+            #[cfg(not(feature = "cache"))]
+            Some(path) => {
+                let path: &Path = &path;
+                Ok(Response::with((status::Ok, path)))
+            },
         }
     }
 }
@@ -97,12 +138,14 @@ impl Handler for Static {
 impl Set for Static {}
 
 /// A modifier for `Static` to specify a response's `cache-control`.
+#[cfg(feature = "cache")]
 #[derive(Clone)]
 pub struct Cache {
     /// The length of time the file should be cached for.
     pub duration: Duration,
 }
 
+#[cfg(feature = "cache")]
 impl Cache {
     /// Create a new instance of `Cache` with a given duration.
     pub fn new(duration: Duration) -> Cache {
@@ -111,11 +154,14 @@ impl Cache {
 
     fn handle<P: AsRef<Path>>(&self, req: &mut Request, path: P) -> IronResult<Response> {
         use iron::headers::{IfModifiedSince, HttpDate};
+
         let path = path.as_ref();
 
-        let last_modified_time = match path.metadata() {
+        let last_modified_time = match fs::metadata(path) {
             Err(error) => return Err(IronError::new(error, status::InternalServerError)),
             Ok(metadata) => {
+                use filetime::FileTime;
+
                 let time = FileTime::from_last_modification_time(&metadata);
                 Timespec::new(time.seconds() as i64, time.nanoseconds() as i32)
             },
@@ -145,6 +191,7 @@ impl Cache {
     }
 }
 
+#[cfg(feature = "cache")]
 impl Modifier<Static> for Cache {
     fn modify(self, static_handler: &mut Static) {
         static_handler.cache = Some(self);
