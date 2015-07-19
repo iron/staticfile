@@ -17,7 +17,7 @@ mount.mount("/doc/", Static::new(Path::new("target/doc/staticfile/")));
 // Serve the source code at /src/
 mount.mount("/src/", Static::new(Path::new("target/doc/src/staticfile/lib.rs.html")));
 
-Iron::new(mount).listen(Ipv4Addr(127, 0, 0, 1), 3000).unwrap();
+Iron::new(mount).http("127.0.0.1:3000").unwrap();
 ```
 
 See [`examples/doc_server.rs`](examples/doc_server.rs) for a complete example that you can compile.
