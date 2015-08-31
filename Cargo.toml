@@ -11,7 +11,7 @@ license = "MIT"
 cache = ["filetime"]
 
 [dependencies]
-iron = "0.1"
+iron = "0.2"
 mount = "0"
 time = "0.1"
 log = "0.3"
@@ -21,5 +21,6 @@ version = "0.1"
 optional = true
 
 [dev-dependencies]
-iron-test = "*"
+iron-test = "0"
 hyper = "0.6"
+router = "0"

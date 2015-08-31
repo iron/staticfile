@@ -6,13 +6,19 @@ extern crate staticfile;
 use hyper::header::Location;
 use hyper::net::NetworkStream;
 use hyper::buffer::BufReader;
+
 use iron::method::Method::Get;
+use iron::response::{ResponseBody, WriteBody};
 use iron::{Url, Handler};
 use iron::status::Status;
+
 use iron_test::{mock, ProjectBuilder};
 use iron_test::mock::MockStream;
+
 use staticfile::Static;
+
 use std::io::Cursor;
+use std::str;
 
 #[test]
 fn serves_non_default_file_from_absolute_root_path() {
@@ -26,9 +32,9 @@ fn serves_non_default_file_from_absolute_root_path() {
                                      &mut reader);
     match st.handle(&mut req) {
         Ok(res) => {
-            let mut str = String::new();
-            res.body.unwrap().read_to_string(&mut str).unwrap();
-            assert_eq!(str, "this is file1".to_string())
+            let mut body = Vec::new();
+            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            assert_eq!(str::from_utf8(&body).unwrap(), "this is file1");
         },
         Err(e) => panic!("{}", e)
     }
@@ -46,9 +52,9 @@ fn serves_default_file_from_absolute_root_path() {
                                      &mut reader);
     match st.handle(&mut req) {
         Ok(res) => {
-            let mut str = String::new();
-            res.body.unwrap().read_to_string(&mut str).unwrap();
-            assert_eq!(str, "this is index".to_string())
+            let mut body = Vec::new();
+            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            assert_eq!(str::from_utf8(&body).unwrap(), "this is index");
         },
         Err(e) => panic!("{}", e)
     }
