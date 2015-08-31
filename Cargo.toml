@@ -1,8 +1,8 @@
 [package]
 
 name = "staticfile"
-version = "0.0.5"
-authors = ["Zach Pomerantz <zmp@umich.edu>"]
+version = "0.0.6"
+authors = ["Zach Pomerantz <zmp@umich.edu>", "Jonathan Reem <jonathan.reem@gmail.com>"]
 description = "Static file serving for Iron."
 repository = "https://github.com/iron/staticfile"
 license = "MIT"
