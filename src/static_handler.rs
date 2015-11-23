@@ -157,6 +157,11 @@ impl Cache {
 
         let path = path.as_ref();
 
+        let if_modified_since = match req.headers.get::<IfModifiedSince>().cloned() {
+            None => return Ok(self.response_with_cache(path, last_modified_time)),
+            Some(IfModifiedSince(HttpDate(time))) => time.to_timespec(),
+        };
+
         let last_modified_time = match fs::metadata(path) {
             Err(error) => return Err(IronError::new(error, status::InternalServerError)),
             Ok(metadata) => {
@@ -165,11 +170,6 @@ impl Cache {
                 let time = FileTime::from_last_modification_time(&metadata);
                 Timespec::new(time.seconds() as i64, time.nanoseconds() as i32)
             },
-        };
-
-        let if_modified_since = match req.headers.get::<IfModifiedSince>().cloned() {
-            None => return Ok(self.response_with_cache(path, last_modified_time)),
-            Some(IfModifiedSince(HttpDate(time))) => time.to_timespec(),
         };
 
         if last_modified_time <= if_modified_since {
