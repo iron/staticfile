@@ -1,5 +1,3 @@
-#![cfg_attr(feature = "cache", feature(duration))]
-
 extern crate time;
 
 extern crate hyper;
@@ -9,6 +7,7 @@ extern crate staticfile;
 
 #[cfg(feature = "cache")]
 mod cache {
+    use time;
     use time::{Timespec};
 
     #[cfg(feature = "cache")]
