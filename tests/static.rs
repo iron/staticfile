@@ -3,21 +3,14 @@ extern crate iron;
 extern crate iron_test;
 extern crate staticfile;
 
-use hyper::header::Location;
-use hyper::net::NetworkStream;
-use hyper::buffer::BufReader;
-
-use iron::method::Method::Get;
-use iron::response::{ResponseBody, WriteBody};
-use iron::{Url, Handler};
+use iron::response::{ResponseBody};
+use iron::headers::{Headers, Location};
 use iron::status::Status;
 
-use iron_test::{mock, ProjectBuilder};
-use iron_test::mock::MockStream;
+use iron_test::{request, ProjectBuilder};
 
 use staticfile::Static;
 
-use std::io::Cursor;
 use std::str;
 
 #[test]
@@ -25,12 +18,7 @@ fn serves_non_default_file_from_absolute_root_path() {
     let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-    let mut req = mock::request::new(Get,
-                                     Url::parse("http://localhost:3000/file1.html").unwrap(),
-                                     &mut reader);
-    match st.handle(&mut req) {
+    match request::get("http://localhost:3000/file1.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
             res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
@@ -45,12 +33,7 @@ fn serves_default_file_from_absolute_root_path() {
     let p = ProjectBuilder::new("example").file("index.html", "this is index");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-    let mut req = mock::request::new(Get,
-                                     Url::parse("http://localhost:3000").unwrap(),
-                                     &mut reader);
-    match st.handle(&mut req) {
+    match request::get("http://localhost:3000/index.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
             res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
@@ -65,13 +48,7 @@ fn returns_404_if_file_not_found() {
     let p = ProjectBuilder::new("example");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-    let mut req = mock::request::new(Get,
-                                     Url::parse("http://localhost:3000").unwrap(),
-                                     &mut reader);
-
-    match st.handle(&mut req) {
+    match request::get("http://localhost:3000", Headers::new(), &st) {
         Ok(res) => panic!("Expected IronError, got Response: {}", res),
         Err(e) => assert_eq!(e.response.status.unwrap(), Status::NotFound)
     }
@@ -83,13 +60,7 @@ fn redirects_if_trailing_slash_is_missing() {
     p.build();
 
     let st = Static::new(p.root().clone());
-    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-    let mut req = mock::request::new(Get,
-                                     Url::parse("http://localhost:3000/dir").unwrap(),
-                                     &mut reader);
-
-    match st.handle(&mut req) {
+    match request::get("http://localhost:3000/dir", Headers::new(), &st) {
         Ok(res) => {
             assert_eq!(res.status.unwrap(), Status::MovedPermanently);
             assert_eq!(res.headers.get::<Location>().unwrap(),
