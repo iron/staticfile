@@ -21,6 +21,6 @@ version = "0.1"
 optional = true
 
 [dev-dependencies]
-iron-test = "0.1"
+iron-test = "0.2"
 hyper = "0.7"
 router = "0"
