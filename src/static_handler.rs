@@ -42,9 +42,9 @@ impl Static {
     ///
     /// If `Path::new("")` is given, files will be served from the current directory.
     #[cfg(feature = "cache")]
-    pub fn new<P: AsRef<Path>>(root: P) -> Static {
+    pub fn new<P: Into<PathBuf>>(root: P) -> Static {
         Static {
-            root: root.as_ref().to_path_buf(),
+            root: root.into(),
             cache: None
         }
     }
@@ -53,9 +53,9 @@ impl Static {
     ///
     /// If `Path::new("")` is given, files will be served from the current directory.
     #[cfg(not(feature = "cache"))]
-    pub fn new<P: AsRef<Path>>(root: P) -> Static {
+    pub fn new<P: Into<PathBuf>>(root: P) -> Static {
         Static {
-            root: root.as_ref().to_path_buf(),
+            root: root.into(),
         }
     }
 
