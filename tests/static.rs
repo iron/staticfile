@@ -75,12 +75,7 @@ fn decodes_percent_notation() {
     let p = ProjectBuilder::new("example").file("has space.html", "file with funky chars");
     p.build();
     let st = Static::new(p.root().clone());
-    let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-    let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-    let mut req = mock::request::new(Get,
-                                     Url::parse("http://localhost:3000/has space.html").unwrap(),
-                                     &mut reader);
-    match st.handle(&mut req) {
+    match request::get("http://localhost:3000/has space.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
             res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
