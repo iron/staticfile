@@ -9,7 +9,7 @@ use time::{self, Timespec};
 use std::time::Duration;
 
 use iron::prelude::*;
-use iron::{Handler, status};
+use iron::{Handler, Url, status};
 #[cfg(feature = "cache")]
 use iron::modifier::Modifier;
 use iron::modifiers::Redirect;
@@ -104,16 +104,17 @@ impl Handler for Static {
         // Otherwise, redirect to the directory equivalent of the URL.
         if requested_path.should_redirect(&metadata, req) {
             // Perform an HTTP 301 Redirect.
-            let mut redirect_path = match req.extensions.get::<OriginalUrl>() {
+            let mut original_url = match req.extensions.get::<OriginalUrl>() {
                 None => &req.url,
                 Some(original_url) => original_url,
-            }.clone();
+            }.clone().into_generic_url();
 
             // Append the trailing slash
             //
             // rust-url automatically turns an empty string in the last
             // slot in the path into a trailing slash.
-            redirect_path.path.push("".to_string());
+            original_url.path_segments_mut().unwrap().push("");
+            let redirect_path = Url::from_generic_url(original_url).unwrap();
 
             return Ok(Response::with((status::MovedPermanently,
                                       format!("Redirecting to {}", redirect_path),

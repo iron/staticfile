@@ -9,32 +9,29 @@ pub struct RequestedPath {
 }
 
 #[inline]
-fn decode_percents(string: &String) -> String {
-    String::from_utf8(percent_decode(string.as_bytes())).unwrap()
+fn decode_percents(string: &&str) -> String {
+    percent_decode(string.as_bytes()).decode_utf8().unwrap().into_owned()
 }
 
 impl RequestedPath {
     pub fn new<P: AsRef<Path>>(root_path: P, request: &Request) -> RequestedPath {
-        let mut path = root_path.as_ref().to_path_buf();
-        let decoded_req_path = request.url.path.iter().map(decode_percents);
-        path.extend(decoded_req_path);
+        let mut result = root_path.as_ref().to_path_buf();
+        let path = request.url.path();
+        let decoded_req_path = path.iter().map(decode_percents);
+        result.extend(decoded_req_path);
 
-        RequestedPath { path: path }
+        RequestedPath { path: result }
     }
 
     pub fn should_redirect(&self, metadata: &Metadata, request: &Request) -> bool {
-        let last_url_element = request.url.path
-            .last()
-            .map(|s| s.as_ref());
-
         // As per servo/rust-url/serialize_path, URLs ending in a slash have an
         // empty string stored as the last component of their path. Rust-url
-        // even ensures that url.path is non-empty by appending a forward slash
+        // even ensures that url.path() is non-empty by appending a forward slash
         // to URLs like http://example.com
         // Some middleware may mutate the URL's path to violate this property,
         // so the empty list case is handled as a redirect.
-        let has_trailing_slash = match last_url_element {
-            Some("") => true,
+        let has_trailing_slash = match request.url.path().last() {
+            Some(&"") => true,
             _ => false,
         };
 

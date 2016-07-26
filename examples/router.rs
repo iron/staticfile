@@ -28,7 +28,7 @@ use staticfile::Static;
 use std::path::Path;
 
 fn say_hello(req: &mut Request) -> IronResult<Response> {
-    println!("Running send_hello handler, URL path: {}", req.url.path.join("/"));
+    println!("Running send_hello handler, URL path: {}", req.url.path().join("/"));
     Ok(Response::with((status::Ok, "This request was routed!")))
 }
 
