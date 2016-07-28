@@ -17,7 +17,9 @@ impl RequestedPath {
     pub fn new<P: AsRef<Path>>(root_path: P, request: &Request) -> RequestedPath {
         let mut result = root_path.as_ref().to_path_buf();
         let path = request.url.path();
-        let decoded_req_path = path.iter().map(decode_percents);
+        let decoded_req_path = path.iter()
+          .map(decode_percents)
+          .filter(|x| x.len() != 0);
         result.extend(decoded_req_path);
 
         RequestedPath { path: result }
