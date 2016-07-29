@@ -6,8 +6,7 @@
 //! handler for route /hello
 //!
 //! Make sure to generate the docs first with `cargo doc`,
-//! then build the tests with `cargo test`,
-//! then run the example with `./target/router`
+//! then build the tests with `cargo run --example router`.
 //!
 //! Visit http://127.0.0.1:3000/hello to view the routed path.
 //!
@@ -44,4 +43,3 @@ fn main() {
 
     Iron::new(mount).http("127.0.0.1:3000").unwrap();
 }
-
