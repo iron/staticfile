@@ -169,26 +169,50 @@ impl Cache {
         };
 
         let if_modified_since = match req.headers.get::<IfModifiedSince>().cloned() {
-            None => return Ok(self.response_with_cache(path, last_modified_time)),
+            None => return Ok(self.response_with_cache(req, path, last_modified_time)),
             Some(IfModifiedSince(HttpDate(time))) => time.to_timespec(),
         };
 
         if last_modified_time <= if_modified_since {
             Ok(Response::with(status::NotModified))
         } else {
-            Ok(self.response_with_cache(path, last_modified_time))
+            Ok(self.response_with_cache(req, path, last_modified_time))
         }
     }
 
-    fn response_with_cache<P: AsRef<Path>>(&self, path: P, modified: Timespec) -> Response {
+    fn response_with_cache<P: AsRef<Path>>(&self,
+                                           req: &mut Request,
+                                           path: P,
+                                           modified: Timespec) -> IronResult<Response> {
         use iron::headers::{CacheControl, LastModified, CacheDirective, HttpDate};
+        use iron::headers::{ContentLength, ContentType};
+        use iron::method::Method;
+        use iron::mime::{Mime, TopLevel, SubLevel};
+        use iron::modifiers::Header;
 
-        let mut response = Response::with((status::Ok, path.as_ref()));
         let seconds = self.duration.as_secs() as u32;
         let cache = vec![CacheDirective::Public, CacheDirective::MaxAge(seconds)];
+        let metadata = fs::metadata(path.as_ref());
+
+        if metadata.is_err() {
+            return Err(IronError::new(metadata.unwrap_err(), status::InternalServerError))
+        }
+
+        let mut response = if req.method == Method::Head {
+            let has_ct = req.headers.get::<ContentType>();
+            let cont_type = match has_ct {
+                None => ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])),
+                Some(t) => t.clone()
+            };
+            Response::with((status::Ok, Header(cont_type), Header(ContentLength(metadata.len()))))
+        } else {
+            Response::with((status::Ok, path.as_ref()));
+        };
+
         response.headers.set(CacheControl(cache));
         response.headers.set(LastModified(HttpDate(time::at(modified))));
-        response
+
+        Ok(response)
     }
 }
 
