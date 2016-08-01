@@ -180,33 +180,39 @@ impl Cache {
         }
     }
 
-    fn response_with_cache<P: AsRef<Path>>(&self, req: &mut Request, path: P, modified: Timespec) -> Response {
+    fn response_with_cache<P: AsRef<Path>>(&self,
+                                           req: &mut Request,
+                                           path: P,
+                                           modified: Timespec) -> IronResult<Response> {
         use iron::headers::{CacheControl, LastModified, CacheDirective, HttpDate};
         use iron::headers::{ContentLength, ContentType};
         use iron::method::Method;
         use iron::mime::{Mime, TopLevel, SubLevel};
         use iron::modifiers::Header;
 
-        let mut response: Response;
         let seconds = self.duration.as_secs() as u32;
         let cache = vec![CacheDirective::Public, CacheDirective::MaxAge(seconds)];
-        let metadata = fs::metadata(path.as_ref()).unwrap();
+        let metadata = fs::metadata(path.as_ref());
 
-        if req.method == Method::Head {
+        if metadata.is_err() {
+            return Err(IronError::new(metadata.unwrap_err(), status::InternalServerError))
+        }
+
+        let mut response = if req.method == Method::Head {
             let has_ct = req.headers.get::<ContentType>();
             let cont_type = match has_ct {
                 None => ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])),
                 Some(t) => t.clone()
             };
-            response = Response::with((status::Ok, Header(cont_type), Header(ContentLength(metadata.len()))))
+            Response::with((status::Ok, Header(cont_type), Header(ContentLength(metadata.len()))))
         } else {
-            response = Response::with((status::Ok, path.as_ref()));
-        }
+            Response::with((status::Ok, path.as_ref()));
+        };
 
         response.headers.set(CacheControl(cache));
         response.headers.set(LastModified(HttpDate(time::at(modified))));
 
-        response
+        Ok(response)
     }
 }
 
