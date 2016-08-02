@@ -169,14 +169,14 @@ impl Cache {
         };
 
         let if_modified_since = match req.headers.get::<IfModifiedSince>().cloned() {
-            None => return Ok(self.response_with_cache(req, path, last_modified_time)),
+            None => return self.response_with_cache(req, path, last_modified_time),
             Some(IfModifiedSince(HttpDate(time))) => time.to_timespec(),
         };
 
         if last_modified_time <= if_modified_since {
             Ok(Response::with(status::NotModified))
         } else {
-            Ok(self.response_with_cache(req, path, last_modified_time))
+            self.response_with_cache(req, path, last_modified_time)
         }
     }
 
@@ -194,9 +194,7 @@ impl Cache {
         let cache = vec![CacheDirective::Public, CacheDirective::MaxAge(seconds)];
         let metadata = fs::metadata(path.as_ref());
 
-        if metadata.is_err() {
-            return Err(IronError::new(metadata.unwrap_err(), status::InternalServerError))
-        }
+        let metadata = try!(metadata.map_err(|e| IronError::new(e, status::InternalServerError)));
 
         let mut response = if req.method == Method::Head {
             let has_ct = req.headers.get::<ContentType>();
@@ -206,7 +204,7 @@ impl Cache {
             };
             Response::with((status::Ok, Header(cont_type), Header(ContentLength(metadata.len()))))
         } else {
-            Response::with((status::Ok, path.as_ref()));
+            Response::with((status::Ok, path.as_ref()))
         };
 
         response.headers.set(CacheControl(cache));
