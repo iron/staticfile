@@ -13,17 +13,13 @@ mod cache {
     #[cfg(feature = "cache")]
     use std::time::Duration;
 
-    use iron::{Handler, Url};
-    use iron::method::Method::Get;
+    use iron::Headers;
     use iron::status::Status;
     use iron::headers::HttpDate;
     use hyper::header::{IfModifiedSince, CacheControl, CacheDirective, LastModified};
-    use hyper::buffer::BufReader;
-    use hyper::net::NetworkStream;
-    use iron_test::{mock, ProjectBuilder};
-    use iron_test::mock::MockStream;
+    use iron_test::ProjectBuilder;
+    use iron_test::request;
     use staticfile::Static;
-    use std::io::Cursor;
 
     #[cfg(feature = "cache")]
     #[test]
@@ -32,12 +28,9 @@ mod cache {
         p.build();
 
         let st = Static::new(p.root().clone()).cache(Duration::from_secs(30*24*60*60));
-        let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-        let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-        let mut req = mock::request::new(Get,
-                                         Url::parse("http://localhost:3000/file1.html").unwrap(),
-                                         &mut reader);
-        match st.handle(&mut req) {
+        let iron_res = request::get("http://localhost:3000/file1.html", Headers::new(), &st);
+
+        match iron_res {
             Ok(res) => {
                 assert!(res.headers.get::<CacheControl>().is_some());
                 assert!(res.headers.get::<LastModified>().is_some());
@@ -56,12 +49,9 @@ mod cache {
         p.build();
 
         let st = Static::new(p.root().clone()).cache(Duration::from_secs(30*24*60*60));
-        let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-        let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-        let mut req = mock::request::new(Get,
-                                         Url::parse("http://localhost:3000/file1.html").unwrap(),
-                                         &mut reader);
-        match st.handle(&mut req) {
+        let iron_res = request::get("http://localhost:3000/file1.html", Headers::new(), &st);
+
+        match iron_res {
             Ok(res) => assert_eq!(res.status.unwrap(), Status::Ok),
             Err(e) => panic!("{}", e)
         }
@@ -74,16 +64,14 @@ mod cache {
         p.build();
 
         let st = Static::new(p.root().clone()).cache(Duration::from_secs(30*24*60*60));
-        let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-        let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-        let mut req = mock::request::new(Get,
-                                         Url::parse("http://localhost:3000/file1.html").unwrap(),
-                                         &mut reader);
 
         let now = time::get_time();
         let one_hour_ago = Timespec::new(now.sec - 3600, now.nsec);
-        req.headers.set(IfModifiedSince(HttpDate(time::at(one_hour_ago))));
-        match st.handle(&mut req) {
+        let mut headers = Headers::new();
+        headers.set(IfModifiedSince(HttpDate(time::at(one_hour_ago))));
+        let iron_res = request::get("http://localhost:3000/file1.html", headers, &st);
+
+        match iron_res {
             Ok(res) => assert_eq!(res.status.unwrap(), Status::Ok),
             Err(e) => panic!("{}", e)
         }
@@ -96,13 +84,11 @@ mod cache {
         p.build();
 
         let st = Static::new(p.root().clone()).cache(Duration::from_secs(30*24*60*60));
-        let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-        let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-        let mut req = mock::request::new(Get,
-                                         Url::parse("http://localhost:3000/file1.html").unwrap(),
-                                         &mut reader);
-        req.headers.set(IfModifiedSince(HttpDate(time::now_utc())));
-        match st.handle(&mut req) {
+        let mut headers = Headers::new();
+        headers.set(IfModifiedSince(HttpDate(time::now_utc())));
+        let iron_res = request::get("http://localhost:3000/file1.html", headers, &st);
+
+        match iron_res {
             Ok(res) => assert_eq!(res.status.unwrap(), Status::NotModified),
             Err(e) => panic!("{}", e)
         }
@@ -115,13 +101,11 @@ mod cache {
         p.build();
 
         let st = Static::new(p.root().clone()).cache(Duration::from_secs(30*24*60*60));
-        let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-        let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-        let mut req = mock::request::new(Get,
-                                         Url::parse("http://localhost:3000/dir/").unwrap(),
-                                         &mut reader);
-        req.headers.set(IfModifiedSince(HttpDate(time::now_utc())));
-        match st.handle(&mut req) {
+        let mut headers = Headers::new();
+        headers.set(IfModifiedSince(HttpDate(time::now_utc())));
+        let iron_res = request::get("http://localhost:3000/dir/", headers, &st);
+
+        match iron_res {
             Ok(res) => assert_eq!(res.status.unwrap(), Status::NotModified),
             Err(e) => panic!("{}", e)
         }
@@ -134,13 +118,11 @@ mod cache {
         p.build();
 
         let st = Static::new(p.root().clone()).cache(Duration::from_secs(30*24*60*60));
-        let mut stream = MockStream::new(Cursor::new("".to_string().into_bytes()));
-        let mut reader = BufReader::new(&mut stream as &mut NetworkStream);
-        let mut req = mock::request::new(Get,
-                                         Url::parse("http://localhost:3000/dir").unwrap(),
-                                         &mut reader);
-        req.headers.set(IfModifiedSince(HttpDate(time::now_utc())));
-        match st.handle(&mut req) {
+        let mut headers = Headers::new();
+        headers.set(IfModifiedSince(HttpDate(time::now_utc())));
+        let iron_res = request::get("http://localhost:3000/dir", headers, &st);
+
+        match iron_res {
             Ok(res) => {
                 assert_eq!(res.status.unwrap(), Status::MovedPermanently);
                 assert!(res.headers.get::<LastModified>().is_none());
@@ -149,4 +131,3 @@ mod cache {
         }
     }
 }
-
