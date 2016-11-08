@@ -1,5 +1,6 @@
 use iron::Request;
-use std::path::{PathBuf, Path};
+use std::iter::FromIterator;
+use std::path::{Component, PathBuf, Path};
 use std::fs::{self, Metadata};
 use std::convert::AsRef;
 use url::percent_encoding::percent_decode;
@@ -13,15 +14,27 @@ fn decode_percents(string: &&str) -> String {
     percent_decode(string.as_bytes()).decode_utf8().unwrap().into_owned()
 }
 
+fn normalize_path(path: &Path) -> PathBuf {
+    path.components().fold(PathBuf::new(), |mut result, p| {
+        match p {
+            Component::Normal(x) => {
+                result.push(x);
+                result
+            }
+            Component::ParentDir => {
+                result.pop();
+                result
+            },
+            _ => result
+        }
+    })
+}
+
 impl RequestedPath {
     pub fn new<P: AsRef<Path>>(root_path: P, request: &Request) -> RequestedPath {
+        let decoded_req_path = PathBuf::from_iter(request.url.path().iter().map(decode_percents));
         let mut result = root_path.as_ref().to_path_buf();
-        let path = request.url.path();
-        let decoded_req_path = path.iter()
-          .map(decode_percents)
-          .filter(|x| x.len() != 0);
-        result.extend(decoded_req_path);
-
+        result.extend(&normalize_path(&decoded_req_path));
         RequestedPath { path: result }
     }
 
