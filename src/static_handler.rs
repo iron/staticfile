@@ -15,6 +15,7 @@ use iron::modifier::Modifier;
 use iron::modifiers::Redirect;
 use mount::OriginalUrl;
 use requested_path::RequestedPath;
+use url;
 
 /// The static file-serving `Handler`.
 ///
@@ -104,10 +105,10 @@ impl Handler for Static {
         // Otherwise, redirect to the directory equivalent of the URL.
         if requested_path.should_redirect(&metadata, req) {
             // Perform an HTTP 301 Redirect.
-            let mut original_url = match req.extensions.get::<OriginalUrl>() {
+            let mut original_url: url::Url = match req.extensions.get::<OriginalUrl>() {
                 None => &req.url,
                 Some(original_url) => original_url,
-            }.clone().into_generic_url();
+            }.clone().into();
 
             // Append the trailing slash
             //
