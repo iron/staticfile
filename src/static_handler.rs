@@ -159,34 +159,35 @@ impl Cache {
 
         let path = path.as_ref();
 
-        let last_modified_time = match fs::metadata(path) {
+        let (size, last_modified_time) = match fs::metadata(path) {
             Err(error) => return Err(IronError::new(error, status::InternalServerError)),
             Ok(metadata) => {
                 use filetime::FileTime;
 
                 let time = FileTime::from_last_modification_time(&metadata);
-                Timespec::new(time.seconds() as i64, 0)
+                (metadata.len(), Timespec::new(time.seconds() as i64, 0))
             },
         };
 
         let if_modified_since = match req.headers.get::<IfModifiedSince>().cloned() {
-            None => return self.response_with_cache(req, path, last_modified_time),
+            None => return self.response_with_cache(req, path, size, last_modified_time),
             Some(IfModifiedSince(HttpDate(time))) => time.to_timespec(),
         };
 
         if last_modified_time <= if_modified_since {
             Ok(Response::with(status::NotModified))
         } else {
-            self.response_with_cache(req, path, last_modified_time)
+            self.response_with_cache(req, path, size, last_modified_time)
         }
     }
 
     fn response_with_cache<P: AsRef<Path>>(&self,
                                            req: &mut Request,
                                            path: P,
+                                           size: u64,
                                            modified: Timespec) -> IronResult<Response> {
         use iron::headers::{CacheControl, LastModified, CacheDirective, HttpDate};
-        use iron::headers::{ContentLength, ContentType};
+        use iron::headers::{ContentLength, ContentType, ETag, EntityTag};
         use iron::method::Method;
         use iron::mime::{Mime, TopLevel, SubLevel};
         use iron::modifiers::Header;
@@ -210,6 +211,7 @@ impl Cache {
 
         response.headers.set(CacheControl(cache));
         response.headers.set(LastModified(HttpDate(time::at(modified))));
+        response.headers.set(ETag(EntityTag::weak(format!("{0:x}-{1:x}.{2:x}", size, modified.sec, modified.nsec))));
 
         Ok(response)
     }

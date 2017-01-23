@@ -16,7 +16,7 @@ mod cache {
     use iron::Headers;
     use iron::status::Status;
     use iron::headers::HttpDate;
-    use hyper::header::{IfModifiedSince, CacheControl, CacheDirective, LastModified};
+    use hyper::header::{IfModifiedSince, CacheControl, CacheDirective, LastModified, ETag};
     use iron_test::ProjectBuilder;
     use iron_test::request;
     use staticfile::Static;
@@ -34,6 +34,7 @@ mod cache {
             Ok(res) => {
                 assert!(res.headers.get::<CacheControl>().is_some());
                 assert!(res.headers.get::<LastModified>().is_some());
+                assert!(res.headers.get::<ETag>().is_some());
                 let cache = res.headers.get::<CacheControl>().unwrap();
                 let directives = vec![CacheDirective::Public, CacheDirective::MaxAge(2592000)];
                 assert_eq!(*cache, CacheControl(directives));
