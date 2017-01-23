@@ -23,6 +23,9 @@ version = "0.1"
 optional = true
 
 [dev-dependencies]
-iron-test = "0.4"
-hyper = "0.9"
-router = "0.2"
+hyper = "0.10"
+router = "0.5"
+
+[dev-dependencies.iron-test]
+git = "https://github.com/reem/iron-test.git"
+rev = "2077c759be395ab08b1bbe841eced7067fac9d34"
