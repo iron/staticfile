@@ -28,4 +28,4 @@ router = "0.5"
 
 [dev-dependencies.iron-test]
 git = "https://github.com/reem/iron-test.git"
-rev = "2077c759be395ab08b1bbe841eced7067fac9d34"
+rev = "3eaec2339a79952bb2864e7bf4ab7f690dd4f875"
