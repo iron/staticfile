@@ -15,7 +15,6 @@ cache = ["filetime"]
 iron = "0.5"
 mount = "0.3"
 time = "0.1"
-log = "0.3"
 url = "1.1"
 
 [dependencies.filetime]

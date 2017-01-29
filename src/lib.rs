@@ -10,8 +10,6 @@ extern crate time;
 extern crate filetime;
 
 extern crate iron;
-#[macro_use]
-extern crate log;
 extern crate mount;
 extern crate url;
 
