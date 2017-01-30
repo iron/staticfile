@@ -3,7 +3,6 @@ extern crate iron;
 extern crate iron_test;
 extern crate staticfile;
 
-use iron::response::{ResponseBody};
 use iron::headers::{Headers, Location};
 use iron::status::Status;
 
@@ -21,7 +20,7 @@ fn serves_non_default_file_from_absolute_root_path() {
     match request::get("http://localhost:3000/file1.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
-            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            res.body.unwrap().write_body(&mut body).unwrap();
             assert_eq!(str::from_utf8(&body).unwrap(), "this is file1");
         },
         Err(e) => panic!("{}", e)
@@ -36,7 +35,7 @@ fn serves_default_file_from_absolute_root_path() {
     match request::get("http://localhost:3000/index.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
-            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            res.body.unwrap().write_body(&mut body).unwrap();
             assert_eq!(str::from_utf8(&body).unwrap(), "this is index");
         },
         Err(e) => panic!("{}", e)
@@ -78,7 +77,7 @@ fn decodes_percent_notation() {
     match request::get("http://localhost:3000/has space.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
-            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            res.body.unwrap().write_body(&mut body).unwrap();
             assert_eq!(str::from_utf8(&body).unwrap(), "file with funky chars");
         },
         Err(e) => panic!("{}", e)
@@ -93,7 +92,7 @@ fn normalizes_path() {
     match request::get("http://localhost:3000/xxx/../index.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
-            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            res.body.unwrap().write_body(&mut body).unwrap();
             assert_eq!(str::from_utf8(&body).unwrap(), "this is index");
         },
         Err(e) => panic!("{}", e)
@@ -108,7 +107,7 @@ fn normalizes_percent_encoded_path() {
     match request::get("http://localhost:3000/xxx/..%2ffile1.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
-            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            res.body.unwrap().write_body(&mut body).unwrap();
             assert_eq!(str::from_utf8(&body).unwrap(), "this is file1");
         },
         Err(e) => panic!("{}", e)
@@ -124,7 +123,7 @@ fn prevents_from_escaping_root() {
     match request::get("http://localhost:3000/../file1.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
-            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            res.body.unwrap().write_body(&mut body).unwrap();
             assert_eq!(str::from_utf8(&body).unwrap(), "this is file1");
         },
         Err(e) => panic!("{}", e)
@@ -133,7 +132,7 @@ fn prevents_from_escaping_root() {
     match request::get("http://localhost:3000/..%2ffile1.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
-            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            res.body.unwrap().write_body(&mut body).unwrap();
             assert_eq!(str::from_utf8(&body).unwrap(), "this is file1");
         },
         Err(e) => panic!("{}", e)
@@ -142,7 +141,7 @@ fn prevents_from_escaping_root() {
     match request::get("http://localhost:3000/xxx/..%2f..%2ffile1.html", Headers::new(), &st) {
         Ok(res) => {
             let mut body = Vec::new();
-            res.body.unwrap().write_body(&mut ResponseBody::new(&mut body)).unwrap();
+            res.body.unwrap().write_body(&mut body).unwrap();
             assert_eq!(str::from_utf8(&body).unwrap(), "this is file1");
         },
         Err(e) => panic!("{}", e)

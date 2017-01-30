@@ -34,7 +34,7 @@ fn say_hello(req: &mut Request) -> IronResult<Response> {
 fn main() {
     let mut router = Router::new();
     router
-        .get("/hello", say_hello);
+        .get("/hello", say_hello, "hello");
 
     let mut mount = Mount::new();
     mount
